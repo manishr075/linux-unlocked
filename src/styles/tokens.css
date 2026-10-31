@@ -1,0 +1,127 @@
+/* ============================================================
+   LINUX UNLOCKED — Design Tokens
+   All visual primitives (color, type, spacing, motion, elevation)
+   are defined here as CSS variables and consumed by Tailwind
+   via the theme extension in tailwind.config.js.
+   ============================================================ */
+
+:root {
+  /* ---- Color: surfaces / backgrounds ---- */
+  --c-bg-void: #05060a;        /* deepest black */
+  --c-bg-base: #0a0c12;        /* page base */
+  --c-bg-surface: #11141d;     /* raised surface */
+  --c-bg-elevated: #161a26;    /* elevated surface */
+  --c-bg-glass: rgba(22, 26, 38, 0.6); /* glass panels */
+
+  /* ---- Color: accents ---- */
+  --c-accent-cyan: #22d3ee;    /* electric cyan — primary accent */
+  --c-accent-blue: #3b82f6;    /* electric blue — primary accent */
+  --c-accent-violet: #8b5cf6;  /* violet — secondary accent (used sparingly) */
+  --c-accent-success: #34d399;
+  --c-accent-warning: #fbbf24;
+  --c-accent-error: #f87171;
+
+  /* ---- Color: text ---- */
+  --c-text-primary: #f1f5f9;
+  --c-text-secondary: #94a3b8;
+  --c-text-muted: #64748b;
+  --c-text-on-accent: #05060a;
+
+  /* ---- Color: borders / lines ---- */
+  --c-border-subtle: rgba(148, 163, 184, 0.12);
+  --c-border-default: rgba(148, 163, 184, 0.2);
+  --c-border-strong: rgba(148, 163, 184, 0.35);
+  --c-border-accent: rgba(34, 211, 238, 0.4);
+
+  /* ---- Typography ---- */
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+
+  --fs-xs: 0.75rem;    /* 12px */
+  --fs-sm: 0.875rem;   /* 14px */
+  --fs-base: 1rem;     /* 16px */
+  --fs-lg: 1.125rem;   /* 18px */
+  --fs-xl: 1.375rem;   /* 22px */
+  --fs-2xl: 1.75rem;   /* 28px */
+  --fs-3xl: 2.25rem;   /* 36px */
+  --fs-4xl: 3rem;      /* 48px */
+  --fs-5xl: 4rem;      /* 64px */
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.625;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ---- Spacing (8px base system) ---- */
+  --sp-0: 0;
+  --sp-1: 0.25rem;   /* 4px */
+  --sp-2: 0.5rem;    /* 8px */
+  --sp-3: 0.75rem;   /* 12px */
+  --sp-4: 1rem;      /* 16px */
+  --sp-5: 1.5rem;    /* 24px */
+  --sp-6: 2rem;      /* 32px */
+  --sp-7: 3rem;      /* 48px */
+  --sp-8: 4rem;      /* 64px */
+  --sp-9: 6rem;      /* 96px */
+
+  /* ---- Radius ---- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-full: 9999px;
+
+  /* ---- Motion ---- */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-normal: 300ms;
+  --dur-slow: 500ms;
+
+  /* ---- Elevation / shadow ---- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 24px rgba(34, 211, 238, 0.15);
+
+  /* ---- Z-index layers ---- */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-nav: 50;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-tooltip: 300;
+
+  /* ---- Focus ring ---- */
+  --focus-ring: 0 0 0 2px var(--c-bg-base), 0 0 0 4px var(--c-accent-cyan);
+
+  /* ---- Glass effect ---- */
+  --glass-blur: 12px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Light theme override (optional, dark is default) ---- */
+[data-theme="light"] {
+  --c-bg-void: #f8fafc;
+  --c-bg-base: #ffffff;
+  --c-bg-surface: #f1f5f9;
+  --c-bg-elevated: #ffffff;
+  --c-bg-glass: rgba(255, 255, 255, 0.7);
+
+  --c-text-primary: #0f172a;
+  --c-text-secondary: #475569;
+  --c-text-muted: #94a3b8;
+  --c-text-on-accent: #ffffff;
+
+  --c-border-subtle: rgba(15, 23, 42, 0.08);
+  --c-border-default: rgba(15, 23, 42, 0.15);
+  --c-border-strong: rgba(15, 23, 42, 0.3);
+
+  --shadow-glow: 0 0 24px rgba(34, 211, 238, 0.25);
+}
