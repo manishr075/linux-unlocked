@@ -85,7 +85,7 @@ npm run dev
 | Command | Purpose |
 | :--- | :--- |
 | `npm run dev` | Starts Vite local development server on `http://localhost:5173` |
-| `npm test` | Runs the automated Vitest test suite (38 unit & simulation tests) |
+| `npm test` | Runs the automated Vitest test suite (43 unit & simulation tests) |
 | `npm run typecheck` | Executes strict TypeScript compiler verification (`tsc --noEmit`) |
 | `npm run lint` | Runs ESLint 9 across all TypeScript and React source files |
 | `npm run build` | Produces optimized, code-split production bundle in `dist/` |
@@ -128,7 +128,7 @@ project/
 │   ├── types/             # Shared TypeScript interfaces & types
 │   ├── App.tsx            # Application root wrapper
 │   └── main.tsx           # React DOM client entry point
-├── tests/                 # Automated test suites (38 tests)
+├── tests/                 # Automated test suites (43 tests)
 │   ├── atlasSearch.test.ts
 │   ├── distroQuiz.test.ts
 │   ├── filesystem.test.ts

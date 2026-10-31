@@ -9,7 +9,7 @@ This document outlines the testing strategy, test suites, automated test executi
 Execute test suites directly from the project root:
 
 ```bash
-# Run all automated tests (38 tests)
+# Run all automated tests (43 tests)
 npm test
 
 # Run tests in watch mode
@@ -41,8 +41,10 @@ All automated tests run via **Vitest v5** in under 1 second:
 | [`tests/missions.test.ts`](file:///home/manish/Downloads/project-bolt-sb1-t4cyanqs/project/tests/missions.test.ts) | 9 | Evaluates mission metadata integrity and execution of individual state validators across all 8 guided terminal missions. |
 | [`tests/distroQuiz.test.ts`](file:///home/manish/Downloads/project-bolt-sb1-t4cyanqs/project/tests/distroQuiz.test.ts) | 3 | Evaluates completeness of 7 distro datasets (Mint, Ubuntu, Fedora, Debian, Arch, Zorin, Pop!_OS) and verifies weighted scoring recommendation algorithm. |
 | [`tests/atlasSearch.test.ts`](file:///home/manish/Downloads/project-bolt-sb1-t4cyanqs/project/tests/atlasSearch.test.ts) | 8 | Evaluates Fuse.js fuzzy search indexing, keyword matching, domain filtering, category filtering, difficulty filtering, slug lookups, empty results, and special character sanitization. |
+| [`tests/glossary.test.ts`](file:///home/manish/Downloads/project-bolt-sb1-t4cyanqs/project/tests/glossary.test.ts) | 3 | Evaluates Linux Translator glossary dataset integrity, multi-depth explanation levels (beginner, practical, technical), and alias lookup. |
+| [`tests/compatibility.test.ts`](file:///home/manish/Downloads/project-bolt-sb1-t4cyanqs/project/tests/compatibility.test.ts) | 2 | Evaluates application compatibility dataset (native/alternatives) and hardware tier ratings, kernel prerequisites, and vendor verification. |
 
-**Total Automated Tests:** 38 passed / 38 total (100% pass rate).
+**Total Automated Tests:** 43 passed / 43 total (100% pass rate).
 
 ---
 
