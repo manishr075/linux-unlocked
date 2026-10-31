@@ -3,15 +3,18 @@
    ------------------------------------------------------------
    A safe, browser-based simulated Linux desktop environment.
    Features:
-     - Multi-Window Manager (Drag, Maximize, Minimize, Z-Index)
+     - Multi-Window Manager (Drag, Maximize, Minimize, Z-Index, Mobile-Friendly)
      - Multiple Workspaces (Workspace 1 & Workspace 2)
+     - Desktop Surface Icons (Home, Welcome Guide, Terminal, Editor, Settings)
+     - Activities / Full App Launcher Grid with search
+     - Beginner Onboarding Quick-Start Guide
      - Top Panel with Activities, Clock, Notifications & System Status
      - Bottom Dock with Active Indicators
-     - 4 Functional Apps:
+     - 4 Functional Apps integrated with shared VirtualFileSystem:
          1. File Manager (Browses in-memory VFS)
          2. Terminal Sandbox (Executes real POSIX commands)
          3. Text Editor (Edits and saves VFS files)
-         4. Settings & Theme Switcher (GNOME / KDE / Hyprland preview)
+         4. Settings & Theme Switcher (GNOME / KDE / Wallpapers)
      - Explicit Ethical Watermark (Identified clearly as simulation)
    ============================================================ */
 
@@ -32,6 +35,10 @@ import {
   Maximize2,
   X,
   Minus,
+  Sparkles,
+  Search,
+  Cpu,
+  CheckCircle2,
 } from "lucide-react";
 
 type AppId = "files" | "terminal" | "editor" | "settings";
@@ -55,28 +62,31 @@ export function DesktopPage() {
   const [activeWorkspace, setActiveWorkspace] = useState(1);
   const [topZ, setTopZ] = useState(10);
   const [activeWallpaper, setActiveWallpaper] = useState("cyan-void");
-  const [desktopLayout, setDesktopLayout] = useState<"gnome" | "kde">("gnome");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const [launcherSearch, setLauncherSearch] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   // Text editor active state
   const [editorFile, setEditorFile] = useState("/home/curious/welcome.txt");
-  const [editorContent, setEditorContent] = useState(() => vfs.readFile("/home/curious/welcome.txt") || "");
+  const [editorContent, setEditorContent] = useState(
+    () => vfs.readFile("/home/curious/welcome.txt") || ""
+  );
   const [editorSaved, setEditorSaved] = useState(true);
 
   // File Manager current path
   const [fmPath, setFmPath] = useState("/home/curious");
-  const [fmRefreshTrigger, setFmRefreshTrigger] = useState(0);
 
   // Window states
   const [windows, setWindows] = useState<Record<AppId, WindowState>>({
     files: {
       id: "files",
       title: "Files — /home/curious",
-      isOpen: true,
+      isOpen: false,
       isMinimized: false,
       isMaximized: false,
-      x: 60,
-      y: 70,
+      x: 70,
+      y: 60,
       width: 580,
       height: 380,
       zIndex: 1,
@@ -88,10 +98,10 @@ export function DesktopPage() {
       isOpen: true,
       isMinimized: false,
       isMaximized: false,
-      x: 320,
-      y: 120,
-      width: 600,
-      height: 400,
+      x: 280,
+      y: 80,
+      width: 620,
+      height: 410,
       zIndex: 2,
       workspace: 1,
     },
@@ -139,6 +149,22 @@ export function DesktopPage() {
         workspace: activeWorkspace,
       },
     }));
+  };
+
+  const openApp = (id: AppId) => {
+    const nextZ = topZ + 1;
+    setTopZ(nextZ);
+    setWindows((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        isOpen: true,
+        isMinimized: false,
+        zIndex: nextZ,
+        workspace: activeWorkspace,
+      },
+    }));
+    setLauncherOpen(false);
   };
 
   const toggleWindow = (id: AppId) => {
@@ -266,7 +292,6 @@ export function DesktopPage() {
   const handleSaveEditor = () => {
     vfs.writeFile(editorFile, editorContent);
     setEditorSaved(true);
-    setFmRefreshTrigger((t) => t + 1);
   };
 
   // Current wallpaper styles
@@ -277,28 +302,68 @@ export function DesktopPage() {
       ? "bg-gradient-to-tr from-[#07050e] via-[#150d2a] to-[#0b1c30]"
       : "bg-gradient-to-b from-[#06090e] via-[#0a141b] to-[#061214]";
 
+  const allApps = [
+    {
+      id: "terminal" as AppId,
+      name: "Terminal Sandbox",
+      desc: "Pure in-memory POSIX command shell with pipes and redirects.",
+      icon: TerminalIcon,
+      color: "text-electric bg-electric/10",
+    },
+    {
+      id: "files" as AppId,
+      name: "File Manager",
+      desc: "Browse Linux FHS filesystem hierarchy (/home/curious, /etc, /var).",
+      icon: Folder,
+      color: "text-cyan bg-cyan/10",
+    },
+    {
+      id: "editor" as AppId,
+      name: "Text Editor",
+      desc: "Edit and save configuration files and scripts directly to memory.",
+      icon: FileText,
+      color: "text-indigo-400 bg-indigo-500/10",
+    },
+    {
+      id: "settings" as AppId,
+      name: "Desktop Settings",
+      desc: "Customize desktop appearance, wallpapers, and window behaviors.",
+      icon: Settings,
+      color: "text-amber-400 bg-amber-500/10",
+    },
+  ];
+
+  const filteredApps = allApps.filter((app) =>
+    app.name.toLowerCase().includes(launcherSearch.toLowerCase()) ||
+    app.desc.toLowerCase().includes(launcherSearch.toLowerCase())
+  );
+
   return (
     <div
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`relative h-[calc(100vh-3.5rem)] w-full overflow-hidden select-none flex flex-col ${wallpaperBg}`}
+      className={`relative h-[calc(100vh-4rem)] w-full overflow-hidden select-none flex flex-col ${wallpaperBg}`}
     >
-      {/* Simulation Watermark Banner */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-sticky pointer-events-none">
-        <div className="rounded-full border border-cyan/30 bg-base/80 px-4 py-1 text-[11px] font-medium text-cyan backdrop-blur-md shadow-glow">
-          Interactive Web Simulation • In-Memory Virtual POSIX Environment
+      {/* Simulation Watermark Notice */}
+      <div className="absolute top-11 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+        <div className="rounded-full border border-cyan/30 bg-[#07090e]/80 px-3.5 py-1 text-[11px] font-mono font-medium text-cyan backdrop-blur-md shadow-glow">
+          Interactive Browser Simulation • In-Memory Virtual POSIX Environment
         </div>
       </div>
 
       {/* Top Panel (GNOME / Linux Style) */}
-      <div className="h-8 border-b border-line-subtle bg-base/80 px-3 flex items-center justify-between text-xs text-ink-secondary backdrop-blur-glass z-nav">
-        {/* Left: Activities & Workspaces */}
+      <div className="h-8 border-b border-white/[0.08] bg-[#07090e]/85 px-3 flex items-center justify-between text-xs text-ink-secondary backdrop-blur-xl z-30">
+        {/* Left: Activities Launcher & Workspaces */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => bringToFront("files")}
-            className="font-bold text-cyan hover:text-ink-primary"
+            onClick={() => setLauncherOpen(!launcherOpen)}
+            className={`font-semibold rounded px-2.5 py-0.5 text-xs transition-colors ${
+              launcherOpen
+                ? "bg-cyan text-ink-onAccent font-bold"
+                : "text-cyan hover:bg-white/5"
+            }`}
           >
             Activities
           </button>
@@ -306,16 +371,16 @@ export function DesktopPage() {
           <div className="flex items-center gap-1 font-mono text-[11px]">
             <button
               onClick={() => setActiveWorkspace(1)}
-              className={`rounded px-2 py-0.5 ${
-                activeWorkspace === 1 ? "bg-cyan text-void font-bold" : "hover:text-ink-primary"
+              className={`rounded px-2 py-0.5 transition-colors ${
+                activeWorkspace === 1 ? "bg-cyan text-ink-onAccent font-bold" : "hover:text-ink-primary hover:bg-white/5"
               }`}
             >
               1
             </button>
             <button
               onClick={() => setActiveWorkspace(2)}
-              className={`rounded px-2 py-0.5 ${
-                activeWorkspace === 2 ? "bg-cyan text-void font-bold" : "hover:text-ink-primary"
+              className={`rounded px-2 py-0.5 transition-colors ${
+                activeWorkspace === 2 ? "bg-cyan text-ink-onAccent font-bold" : "hover:text-ink-primary hover:bg-white/5"
               }`}
             >
               2
@@ -323,43 +388,48 @@ export function DesktopPage() {
           </div>
         </div>
 
-        {/* Center: Clock */}
-        <div className="font-semibold text-ink-primary text-xs">
-          Oct 31  21:45
+        {/* Center: System Clock */}
+        <div className="font-semibold text-ink-primary text-xs tracking-wide">
+          Oct 31  23:45
         </div>
 
-        {/* Right: System Tray & Notifications */}
+        {/* Right: System Status & Notifications */}
         <div className="flex items-center gap-3 relative">
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono text-ink-muted">
+            <Cpu size={12} className="text-cyan" />
+            <span>Wayland</span>
+          </div>
+
           <button
             onClick={() => setNotificationsOpen(!notificationsOpen)}
             className="p-1 hover:text-cyan relative"
             title="Notifications"
           >
-            <Bell size={14} />
+            <Bell size={13} />
             <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-cyan" />
           </button>
-          <Wifi size={14} className="text-success" />
-          <Volume2 size={14} />
-          <div className="flex items-center gap-1 text-[11px]">
-            <Battery size={14} className="text-success" />
-            <span>98%</span>
+          <Wifi size={13} className="text-emerald-400" />
+          <Volume2 size={13} />
+          <div className="flex items-center gap-1 text-[11px] font-mono">
+            <Battery size={13} className="text-emerald-400" />
+            <span>100%</span>
           </div>
 
           {/* Notifications Dropdown */}
           {notificationsOpen && (
-            <div className="absolute right-0 top-7 w-72 rounded-xl border border-line-subtle bg-base/95 p-3 shadow-2xl backdrop-blur-md z-modal text-xs animate-fadeIn">
-              <span className="font-bold text-ink-primary block mb-2">Notifications</span>
+            <div className="absolute right-0 top-7 w-72 rounded-xl border border-white/10 bg-[#070a12]/95 p-3 shadow-2xl backdrop-blur-2xl z-50 text-xs animate-fadeIn">
+              <span className="font-bold text-ink-primary block mb-2">System Notifications</span>
               <div className="space-y-2">
-                <div className="rounded-lg bg-surface/60 p-2 border border-line-subtle">
-                  <p className="font-semibold text-cyan text-[11px]">Kernel Ready</p>
-                  <p className="text-[10px] text-ink-secondary mt-0.5">
-                    Linux 6.12.0 virtual core running smoothly in browser memory.
+                <div className="rounded-lg bg-surface/60 p-2.5 border border-white/5">
+                  <p className="font-semibold text-cyan text-[11px]">Virtual Kernel Ready</p>
+                  <p className="text-[10px] text-ink-secondary mt-0.5 leading-relaxed">
+                    Linux 6.12.0 virtual POSIX core active in browser memory.
                   </p>
                 </div>
-                <div className="rounded-lg bg-surface/60 p-2 border border-line-subtle">
-                  <p className="font-semibold text-success text-[11px]">Firewall Active</p>
-                  <p className="text-[10px] text-ink-secondary mt-0.5">
-                    Default UFW incoming traffic rules configured.
+                <div className="rounded-lg bg-surface/60 p-2.5 border border-white/5">
+                  <p className="font-semibold text-emerald-400 text-[11px]">Filesystem Mounted</p>
+                  <p className="text-[10px] text-ink-secondary mt-0.5 leading-relaxed">
+                    Virtual FHS tree mounted at root (/). 0 remote disk writes.
                   </p>
                 </div>
               </div>
@@ -368,8 +438,154 @@ export function DesktopPage() {
         </div>
       </div>
 
-      {/* Workspace Area: Floating Windows */}
+      {/* Main Desktop Surface */}
       <div className="relative flex-1 overflow-hidden">
+        {/* Beginner Onboarding Quick-Start Guide */}
+        {showOnboarding && (
+          <div className="absolute top-16 right-4 sm:right-8 z-20 max-w-sm rounded-2xl border border-cyan/40 bg-[#07090e]/95 p-4 shadow-2xl backdrop-blur-xl animate-fadeIn">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 text-cyan font-bold text-xs uppercase tracking-wide">
+                <Sparkles size={14} /> Desktop Simulator Tour
+              </div>
+              <button
+                onClick={() => setShowOnboarding(false)}
+                className="text-ink-muted hover:text-ink-primary"
+                aria-label="Dismiss tour"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-ink-secondary leading-relaxed">
+              Experience a real Linux desktop interface without installing anything:
+            </p>
+            <ul className="mt-2 space-y-1.5 text-[11px] text-ink-secondary">
+              <li className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-cyan shrink-0" />
+                <span><strong>Drag & Resize:</strong> Move windows naturally across the desktop.</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-cyan shrink-0" />
+                <span><strong>Terminal:</strong> Run real commands like <code className="text-cyan font-mono">ls</code> and <code className="text-cyan font-mono">cat</code>.</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-cyan shrink-0" />
+                <span><strong>Shared Memory:</strong> Edit files in Text Editor and browse them in Files.</span>
+              </li>
+            </ul>
+            <div className="mt-3 flex justify-end">
+              <Button size="sm" variant="secondary" onClick={() => setShowOnboarding(false)} className="text-[11px] py-1">
+                Got it
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Visible Desktop Icons on the Wallpaper */}
+        <div className="absolute top-16 left-4 sm:left-6 z-10 flex flex-col gap-4">
+          <button
+            onDoubleClick={() => openApp("files")}
+            onClick={() => bringToFront("files")}
+            className="flex flex-col items-center w-20 p-2 rounded-xl hover:bg-white/10 transition-colors group text-center"
+          >
+            <div className="h-10 w-10 rounded-xl bg-cyan/15 border border-cyan/30 flex items-center justify-center text-cyan shadow-lg group-hover:scale-105 transition-transform">
+              <Folder size={22} />
+            </div>
+            <span className="mt-1.5 text-[11px] font-medium text-ink-primary text-shadow drop-shadow">
+              Home
+            </span>
+          </button>
+
+          <button
+            onDoubleClick={() => openFileInEditor("/home/curious/welcome.txt")}
+            className="flex flex-col items-center w-20 p-2 rounded-xl hover:bg-white/10 transition-colors group text-center"
+          >
+            <div className="h-10 w-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-lg group-hover:scale-105 transition-transform">
+              <FileText size={22} />
+            </div>
+            <span className="mt-1.5 text-[11px] font-medium text-ink-primary text-shadow drop-shadow truncate max-w-full">
+              welcome.txt
+            </span>
+          </button>
+
+          <button
+            onDoubleClick={() => openApp("terminal")}
+            onClick={() => bringToFront("terminal")}
+            className="flex flex-col items-center w-20 p-2 rounded-xl hover:bg-white/10 transition-colors group text-center"
+          >
+            <div className="h-10 w-10 rounded-xl bg-electric/15 border border-electric/30 flex items-center justify-center text-electric shadow-lg group-hover:scale-105 transition-transform">
+              <TerminalIcon size={22} />
+            </div>
+            <span className="mt-1.5 text-[11px] font-medium text-ink-primary text-shadow drop-shadow">
+              Terminal
+            </span>
+          </button>
+
+          <button
+            onDoubleClick={() => openApp("settings")}
+            onClick={() => bringToFront("settings")}
+            className="flex flex-col items-center w-20 p-2 rounded-xl hover:bg-white/10 transition-colors group text-center"
+          >
+            <div className="h-10 w-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg group-hover:scale-105 transition-transform">
+              <Settings size={22} />
+            </div>
+            <span className="mt-1.5 text-[11px] font-medium text-ink-primary text-shadow drop-shadow">
+              Settings
+            </span>
+          </button>
+        </div>
+
+        {/* ============================================================
+            ACTIVITIES APPLICATION LAUNCHER OVERLAY (FULL APP GRID)
+            ============================================================ */}
+        {launcherOpen && (
+          <div className="absolute inset-0 z-40 bg-[#05060a]/90 backdrop-blur-2xl p-6 sm:p-12 flex flex-col items-center justify-center animate-fadeIn">
+            <div className="w-full max-w-xl">
+              <div className="relative mb-8">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan" size={18} />
+                <input
+                  type="text"
+                  placeholder="Type to search simulated applications..."
+                  value={launcherSearch}
+                  onChange={(e) => setLauncherSearch(e.target.value)}
+                  autoFocus
+                  className="w-full rounded-2xl border border-white/15 bg-white/5 py-3 pl-12 pr-4 text-sm text-ink-primary placeholder:text-ink-muted focus:border-cyan focus:outline-none backdrop-blur-md shadow-2xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {filteredApps.map((app) => {
+                  const Icon = app.icon;
+                  return (
+                    <button
+                      key={app.id}
+                      onClick={() => openApp(app.id)}
+                      className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-surface/50 p-4 text-left hover:border-cyan/50 hover:bg-white/[0.08] transition-all group"
+                    >
+                      <div className={`rounded-xl p-3 ${app.color} group-hover:scale-110 transition-transform`}>
+                        <Icon size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-ink-primary group-hover:text-cyan transition-colors">
+                          {app.name}
+                        </p>
+                        <p className="mt-1 text-xs text-ink-muted leading-relaxed">
+                          {app.desc}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-8 text-center">
+                <Button variant="ghost" size="sm" onClick={() => setLauncherOpen(false)} className="text-xs text-ink-muted">
+                  Press Esc or click to return to Desktop
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ============================================================
             WINDOW 1: FILE MANAGER
             ============================================================ */}
@@ -385,86 +601,76 @@ export function DesktopPage() {
                 zIndex: windows.files.zIndex,
               }}
               onClick={() => bringToFront("files")}
-              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-xl border border-line-accent/50 bg-base/90 shadow-2xl backdrop-blur-md flex flex-col overflow-hidden text-xs"
+              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-2xl border border-cyan/30 bg-[#07090e]/95 shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden text-xs"
             >
-              {/* Header Bar */}
               <div
                 onMouseDown={(e) => handleMouseDown(e, "files")}
                 onTouchStart={(e) => handleTouchStart(e, "files")}
-                className="h-8 border-b border-line-subtle bg-surface/90 px-3 flex items-center justify-between cursor-move select-none"
+                className="h-9 border-b border-white/[0.08] bg-[#0c101a] px-3.5 flex items-center justify-between cursor-move select-none"
               >
                 <div className="flex items-center gap-2">
                   <FolderOpen size={14} className="text-cyan" />
-                  <span className="font-semibold text-ink-primary">
-                    Files — {fmPath}
-                  </span>
+                  <span className="font-semibold text-ink-primary">Files — {fmPath}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => minimizeWindow("files")} className="p-1 hover:text-ink-primary">
-                    <Minus size={12} />
+                <div className="flex items-center gap-2">
+                  <button onClick={() => minimizeWindow("files")} className="p-1 hover:text-cyan">
+                    <Minus size={13} />
                   </button>
-                  <button onClick={() => toggleMaximize("files")} className="p-1 hover:text-ink-primary">
+                  <button onClick={() => toggleMaximize("files")} className="p-1 hover:text-cyan">
                     <Maximize2 size={12} />
                   </button>
-                  <button onClick={() => closeWindow("files")} className="p-1 text-ink-muted hover:text-error">
-                    <X size={12} />
+                  <button onClick={() => closeWindow("files")} className="p-1 hover:text-error">
+                    <X size={13} />
                   </button>
                 </div>
               </div>
 
-              {/* Breadcrumb Path Bar */}
-              <div className="border-b border-line-subtle bg-surface/40 px-3 py-1.5 flex items-center gap-2 font-mono text-[11px]">
+              {/* Path Bar */}
+              <div className="px-3 py-1.5 border-b border-white/[0.06] bg-black/20 flex items-center gap-1 font-mono text-[11px] text-ink-secondary">
                 <button
-                  onClick={() => setFmPath("/home/curious")}
-                  className="text-cyan hover:underline"
+                  onClick={() => setFmPath("/")}
+                  className="px-1.5 py-0.5 rounded hover:bg-white/10 hover:text-cyan"
                 >
-                  ~ (home)
+                  /
                 </button>
-                <span>/</span>
-                <span>{fmPath.split("/").slice(3).join("/") || "curious"}</span>
-              </div>
-
-              {/* Folder Content Grid */}
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {(fmRefreshTrigger >= 0 ? vfs.listDir(fmPath) || [] : []).map((item) => (
-                  <button
-                    key={item.name}
-                    onClick={() => {
-                      if (window.innerWidth < 768) {
-                        if (item.type === "dir") {
-                          setFmPath(vfs.resolvePath(`${fmPath}/${item.name}`));
-                        } else {
-                          openFileInEditor(`${fmPath}/${item.name}`);
-                        }
-                      }
-                    }}
-                    onDoubleClick={() => {
-                      if (item.type === "dir") {
-                        setFmPath(vfs.resolvePath(`${fmPath}/${item.name}`));
-                      } else {
-                        openFileInEditor(`${fmPath}/${item.name}`);
-                      }
-                    }}
-                    className="flex flex-col items-center justify-center p-3 rounded-xl border border-transparent hover:border-line hover:bg-surface/60 text-center transition-all"
-                  >
-                    {item.type === "dir" ? (
-                      <Folder size={36} className="text-cyan mb-1.5" />
-                    ) : (
-                      <FileText size={36} className="text-electric mb-1.5" />
-                    )}
-                    <span className="font-medium text-ink-primary truncate max-w-full text-xs">
-                      {item.name}
-                    </span>
-                    <span className="font-mono text-[10px] text-ink-muted">
-                      {item.type === "dir" ? "folder" : `${item.content?.length || 0} bytes`}
-                    </span>
-                  </button>
+                {fmPath.split("/").filter(Boolean).map((seg, i, arr) => (
+                  <span key={seg} className="flex items-center gap-1">
+                    <span className="text-ink-muted">/</span>
+                    <button
+                      onClick={() => setFmPath("/" + arr.slice(0, i + 1).join("/"))}
+                      className="px-1.5 py-0.5 rounded hover:bg-white/10 hover:text-cyan"
+                    >
+                      {seg}
+                    </button>
+                  </span>
                 ))}
               </div>
 
-              <div className="border-t border-line-subtle px-3 py-1 text-[10px] text-ink-muted flex justify-between bg-base/50">
-                <span>Double-click files to open in Text Editor</span>
-                <span>Virtual POSIX Tree</span>
+              {/* File list */}
+              <div className="flex-1 p-3 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(vfs.listDir(fmPath) || []).map((entry) => (
+                  <button
+                    key={entry.name}
+                    onDoubleClick={() => {
+                      if (entry.type === "dir") {
+                        setFmPath((p) => (p === "/" ? `/${entry.name}` : `${p}/${entry.name}`));
+                      } else {
+                        const targetPath = fmPath === "/" ? `/${entry.name}` : `${fmPath}/${entry.name}`;
+                        openFileInEditor(targetPath);
+                      }
+                    }}
+                    className="p-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-cyan/30 flex flex-col items-center text-center group"
+                  >
+                    {entry.type === "dir" ? (
+                      <Folder size={32} className="text-cyan group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <FileText size={32} className="text-indigo-400 group-hover:scale-105 transition-transform" />
+                    )}
+                    <span className="mt-1.5 text-xs text-ink-primary truncate max-w-full font-mono">
+                      {entry.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -484,34 +690,33 @@ export function DesktopPage() {
                 zIndex: windows.terminal.zIndex,
               }}
               onClick={() => bringToFront("terminal")}
-              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-xl border border-line-accent/50 bg-void shadow-2xl flex flex-col overflow-hidden text-xs"
+              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-2xl border border-cyan/40 bg-[#06080e]/95 shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden text-xs"
             >
-              {/* Header Bar */}
               <div
                 onMouseDown={(e) => handleMouseDown(e, "terminal")}
                 onTouchStart={(e) => handleTouchStart(e, "terminal")}
-                className="h-8 border-b border-line-subtle bg-surface/90 px-3 flex items-center justify-between cursor-move select-none"
+                className="h-9 border-b border-white/[0.08] bg-[#090d16] px-3.5 flex items-center justify-between cursor-move select-none"
               >
                 <div className="flex items-center gap-2">
-                  <TerminalIcon size={14} className="text-cyan" />
-                  <span className="font-semibold text-ink-primary">
-                    curious@linux-unlocked: ~ (Terminal)
+                  <TerminalIcon size={14} className="text-electric" />
+                  <span className="font-semibold text-ink-primary font-mono text-[11px]">
+                    curious@linux-unlocked: ~
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => minimizeWindow("terminal")} className="p-1 hover:text-ink-primary">
-                    <Minus size={12} />
+                <div className="flex items-center gap-2">
+                  <button onClick={() => minimizeWindow("terminal")} className="p-1 hover:text-cyan">
+                    <Minus size={13} />
                   </button>
-                  <button onClick={() => toggleMaximize("terminal")} className="p-1 hover:text-ink-primary">
+                  <button onClick={() => toggleMaximize("terminal")} className="p-1 hover:text-cyan">
                     <Maximize2 size={12} />
                   </button>
-                  <button onClick={() => closeWindow("terminal")} className="p-1 text-ink-muted hover:text-error">
-                    <X size={12} />
+                  <button onClick={() => closeWindow("terminal")} className="p-1 hover:text-error">
+                    <X size={13} />
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden p-1">
+              <div className="flex-1 p-2 overflow-hidden bg-[#06080e]">
                 <InteractiveTerminal initialWelcome={false} />
               </div>
             </div>
@@ -532,37 +737,33 @@ export function DesktopPage() {
                 zIndex: windows.editor.zIndex,
               }}
               onClick={() => bringToFront("editor")}
-              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-xl border border-line-accent/50 bg-base/95 shadow-2xl flex flex-col overflow-hidden text-xs"
+              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-2xl border border-indigo-500/30 bg-[#07090e]/95 shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden text-xs"
             >
               <div
                 onMouseDown={(e) => handleMouseDown(e, "editor")}
                 onTouchStart={(e) => handleTouchStart(e, "editor")}
-                className="h-8 border-b border-line-subtle bg-surface/90 px-3 flex items-center justify-between cursor-move select-none"
+                className="h-9 border-b border-white/[0.08] bg-[#0c101a] px-3.5 flex items-center justify-between cursor-move select-none"
               >
                 <div className="flex items-center gap-2">
-                  <FileText size={14} className="text-cyan" />
-                  <span className="font-semibold text-ink-primary">{windows.editor.title}</span>
-                  {!editorSaved && <span className="text-[10px] text-warning">• Modified</span>}
+                  <FileText size={14} className="text-indigo-400" />
+                  <span className="font-semibold text-ink-primary font-mono text-[11px]">
+                    {windows.editor.title} {!editorSaved && "*"}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => minimizeWindow("editor")} className="p-1 hover:text-ink-primary">
-                    <Minus size={12} />
+                <div className="flex items-center gap-2">
+                  <button onClick={handleSaveEditor} className="px-2 py-0.5 rounded bg-cyan/15 text-cyan hover:bg-cyan/25 font-semibold text-[10px]">
+                    Save
                   </button>
-                  <button onClick={() => toggleMaximize("editor")} className="p-1 hover:text-ink-primary">
+                  <button onClick={() => minimizeWindow("editor")} className="p-1 hover:text-cyan">
+                    <Minus size={13} />
+                  </button>
+                  <button onClick={() => toggleMaximize("editor")} className="p-1 hover:text-cyan">
                     <Maximize2 size={12} />
                   </button>
-                  <button onClick={() => closeWindow("editor")} className="p-1 text-ink-muted hover:text-error">
-                    <X size={12} />
+                  <button onClick={() => closeWindow("editor")} className="p-1 hover:text-error">
+                    <X size={13} />
                   </button>
                 </div>
-              </div>
-
-              {/* Editor Toolbar */}
-              <div className="border-b border-line-subtle bg-surface/40 px-3 py-1.5 flex items-center justify-between">
-                <span className="font-mono text-[11px] text-ink-muted">{editorFile}</span>
-                <Button size="sm" variant={editorSaved ? "ghost" : "primary"} onClick={handleSaveEditor}>
-                  Save File
-                </Button>
               </div>
 
               <textarea
@@ -571,7 +772,7 @@ export function DesktopPage() {
                   setEditorContent(e.target.value);
                   setEditorSaved(false);
                 }}
-                className="flex-1 w-full bg-void p-4 font-mono text-xs text-ink-primary focus:outline-none resize-none"
+                className="flex-1 w-full bg-[#05060a] p-4 font-mono text-xs text-ink-primary resize-none focus:outline-none leading-relaxed"
                 spellCheck={false}
               />
             </div>
@@ -592,76 +793,59 @@ export function DesktopPage() {
                 zIndex: windows.settings.zIndex,
               }}
               onClick={() => bringToFront("settings")}
-              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-xl border border-line-accent/50 bg-base/95 shadow-2xl flex flex-col overflow-hidden text-xs"
+              className="absolute max-md:!left-2 max-md:!top-2 max-md:!right-2 max-md:!bottom-16 max-md:!w-auto max-md:!h-auto rounded-2xl border border-amber-500/30 bg-[#07090e]/95 shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden text-xs"
             >
               <div
                 onMouseDown={(e) => handleMouseDown(e, "settings")}
                 onTouchStart={(e) => handleTouchStart(e, "settings")}
-                className="h-8 border-b border-line-subtle bg-surface/90 px-3 flex items-center justify-between cursor-move select-none"
+                className="h-9 border-b border-white/[0.08] bg-[#0c101a] px-3.5 flex items-center justify-between cursor-move select-none"
               >
                 <div className="flex items-center gap-2">
-                  <Settings size={14} className="text-cyan" />
-                  <span className="font-semibold text-ink-primary">Settings & Desktop Customization</span>
+                  <Settings size={14} className="text-amber-400" />
+                  <span className="font-semibold text-ink-primary">Settings</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => minimizeWindow("settings")} className="p-1 hover:text-ink-primary">
-                    <Minus size={12} />
+                <div className="flex items-center gap-2">
+                  <button onClick={() => minimizeWindow("settings")} className="p-1 hover:text-cyan">
+                    <Minus size={13} />
                   </button>
-                  <button onClick={() => closeWindow("settings")} className="p-1 text-ink-muted hover:text-error">
-                    <X size={12} />
+                  <button onClick={() => toggleMaximize("settings")} className="p-1 hover:text-cyan">
+                    <Maximize2 size={12} />
+                  </button>
+                  <button onClick={() => closeWindow("settings")} className="p-1 hover:text-error">
+                    <X size={13} />
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
                 <div>
-                  <h4 className="font-bold text-sm text-ink-primary mb-2">Desktop Wallpaper:</h4>
+                  <h3 className="font-semibold text-ink-primary text-sm mb-3">Wallpaper & Theme</h3>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { id: "cyan-void", name: "Cyan Void" },
-                      { id: "nebula", name: "Violet Nebula" },
-                      { id: "matrix", name: "Dark Emerald" },
-                    ].map((wp) => (
+                      { id: "cyan-void", name: "Cyan Void", style: "from-[#05060a] to-[#0c182c]" },
+                      { id: "nebula", name: "Deep Nebula", style: "from-[#07050e] to-[#0b1c30]" },
+                      { id: "slate", name: "Slate Terminal", style: "from-[#06090e] to-[#061214]" },
+                    ].map((w) => (
                       <button
-                        key={wp.id}
-                        onClick={() => setActiveWallpaper(wp.id)}
-                        className={`rounded-lg border p-3 text-center transition-all ${
-                          activeWallpaper === wp.id
-                            ? "border-cyan bg-cyan/15 text-cyan font-bold shadow-glow"
-                            : "border-line-subtle bg-surface/60 text-ink-secondary hover:border-line"
+                        key={w.id}
+                        onClick={() => setActiveWallpaper(w.id)}
+                        className={`rounded-xl p-3 bg-gradient-to-br ${w.style} border text-left transition-all ${
+                          activeWallpaper === w.id ? "border-cyan ring-2 ring-cyan/30" : "border-white/10 hover:border-white/20"
                         }`}
                       >
-                        {wp.name}
+                        <p className="font-semibold text-xs text-ink-primary">{w.name}</p>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="font-bold text-sm text-ink-primary mb-2">Desktop Layout Style:</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setDesktopLayout("gnome")}
-                      className={`rounded-lg border p-3 text-left transition-all ${
-                        desktopLayout === "gnome"
-                          ? "border-cyan bg-cyan/15 text-cyan font-bold"
-                          : "border-line-subtle bg-surface/60 text-ink-secondary"
-                      }`}
-                    >
-                      <span className="font-bold block">GNOME (Floating Dock)</span>
-                      <span className="text-[11px] text-ink-muted">Modern centered dock with dynamic gestures</span>
-                    </button>
-                    <button
-                      onClick={() => setDesktopLayout("kde")}
-                      className={`rounded-lg border p-3 text-left transition-all ${
-                        desktopLayout === "kde"
-                          ? "border-cyan bg-cyan/15 text-cyan font-bold"
-                          : "border-line-subtle bg-surface/60 text-ink-secondary"
-                      }`}
-                    >
-                      <span className="font-bold block">KDE Plasma / Windows Style</span>
-                      <span className="text-[11px] text-ink-muted">Full-width bottom panel with application menu</span>
-                    </button>
+                <div className="border-t border-white/[0.08] pt-4">
+                  <h3 className="font-semibold text-ink-primary text-sm mb-2">Simulated System Information</h3>
+                  <div className="space-y-1.5 font-mono text-xs text-ink-secondary bg-black/30 p-3 rounded-xl border border-white/5">
+                    <p><span className="text-ink-muted">OS:</span> Linux Unlocked Virtual Desktop (POSIX)</p>
+                    <p><span className="text-ink-muted">Kernel:</span> 6.12.0-unlocked-x86_64</p>
+                    <p><span className="text-ink-muted">Compositor:</span> Wayland (Simulated Protocol)</p>
+                    <p><span className="text-ink-muted">VFS Memory:</span> ~3.2 MB allocated in browser RAM</p>
                   </div>
                 </div>
               </div>
@@ -669,68 +853,34 @@ export function DesktopPage() {
           )}
       </div>
 
-      {/* Bottom Dock / Taskbar */}
-      <div className="pb-3 flex justify-center z-nav">
-        <div className="rounded-2xl border border-line-subtle bg-base/80 p-2 flex items-center gap-2 backdrop-blur-glass shadow-2xl">
-          <button
-            onClick={() => toggleWindow("files")}
-            className={`p-2.5 rounded-xl transition-all relative ${
-              windows.files.isOpen && !windows.files.isMinimized
-                ? "bg-cyan/20 text-cyan border border-cyan/40"
-                : "text-ink-secondary hover:bg-surface hover:text-ink-primary"
-            }`}
-            title="File Manager"
-          >
-            <Folder size={20} />
-            {windows.files.isOpen && (
-              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-cyan" />
-            )}
-          </button>
-
-          <button
-            onClick={() => toggleWindow("terminal")}
-            className={`p-2.5 rounded-xl transition-all relative ${
-              windows.terminal.isOpen && !windows.terminal.isMinimized
-                ? "bg-cyan/20 text-cyan border border-cyan/40"
-                : "text-ink-secondary hover:bg-surface hover:text-ink-primary"
-            }`}
-            title="Terminal Sandbox"
-          >
-            <TerminalIcon size={20} />
-            {windows.terminal.isOpen && (
-              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-cyan" />
-            )}
-          </button>
-
-          <button
-            onClick={() => toggleWindow("editor")}
-            className={`p-2.5 rounded-xl transition-all relative ${
-              windows.editor.isOpen && !windows.editor.isMinimized
-                ? "bg-cyan/20 text-cyan border border-cyan/40"
-                : "text-ink-secondary hover:bg-surface hover:text-ink-primary"
-            }`}
-            title="Text Editor"
-          >
-            <FileText size={20} />
-            {windows.editor.isOpen && (
-              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-cyan" />
-            )}
-          </button>
-
-          <button
-            onClick={() => toggleWindow("settings")}
-            className={`p-2.5 rounded-xl transition-all relative ${
-              windows.settings.isOpen && !windows.settings.isMinimized
-                ? "bg-cyan/20 text-cyan border border-cyan/40"
-                : "text-ink-secondary hover:bg-surface hover:text-ink-primary"
-            }`}
-            title="Desktop Settings"
-          >
-            <Settings size={20} />
-            {windows.settings.isOpen && (
-              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-cyan" />
-            )}
-          </button>
+      {/* Bottom Application Dock */}
+      <div className="h-14 border-t border-white/[0.08] bg-[#07090e]/85 backdrop-blur-2xl flex items-center justify-center px-4 z-30">
+        <div className="flex items-center gap-2 rounded-2xl bg-white/[0.04] p-1.5 border border-white/10 shadow-2xl">
+          {allApps.map((app) => {
+            const Icon = app.icon;
+            const win = windows[app.id];
+            const isRunning = win.isOpen;
+            const isActive = isRunning && !win.isMinimized;
+            return (
+              <button
+                key={app.id}
+                onClick={() => toggleWindow(app.id)}
+                className={`p-2.5 rounded-xl transition-all relative ${
+                  isActive
+                    ? "bg-cyan/20 text-cyan border border-cyan/40 shadow-glow"
+                    : isRunning
+                    ? "text-ink-primary bg-white/5"
+                    : "text-ink-secondary hover:bg-white/10 hover:text-ink-primary"
+                }`}
+                title={app.name}
+              >
+                <Icon size={20} />
+                {isRunning && (
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-cyan" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
