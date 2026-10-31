@@ -7,5 +7,11 @@ interface GlassPanelProps {
 
 /** Frosted glass surface for overlays, hero panels, and 3D-chrome. */
 export function GlassPanel({ children, className = "" }: GlassPanelProps) {
-  return <div className={`glass rounded-xl ${className}`}>{children}</div>;
+  return (
+    <div
+      className={`glass-card rounded-2xl shadow-2xl shadow-black/50 transition-all duration-300 ${className}`}
+    >
+      {children}
+    </div>
+  );
 }

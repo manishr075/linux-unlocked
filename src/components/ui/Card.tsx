@@ -12,17 +12,17 @@ interface CardProps {
 export function Card({
   children,
   className = "",
-  glass = false,
-  hover = false,
+  glass = true,
+  hover = true,
   onClick,
 }: CardProps) {
   const Tag = onClick ? "button" : "div";
   return (
     <Tag
       onClick={onClick}
-      className={`rounded-lg border border-line-subtle p-5 text-left ${
-        glass ? "glass" : "bg-surface"
-      } ${hover ? "transition-all duration-normal ease-soft hover:border-line-strong hover:shadow-md" : ""} ${
+      className={`rounded-xl p-5 text-left ${
+        glass ? "glass-card" : "rounded-xl border border-line-subtle bg-surface/90"
+      } ${hover ? "card-hover-fx" : ""} ${
         onClick ? "w-full cursor-pointer" : ""
       } ${className}`}
     >
