@@ -5,27 +5,20 @@ import type { DeviceTier } from "@/types";
  * Classifies the current device into a capability tier so 3D scenes and
  * motion-heavy features can degrade gracefully.
  *
- * Heuristics (intentionally cheap, no expensive benchmarks):
+ * Heuristics (intentionally cheap, evaluated synchronously):
  *  - `prefers-reduced-motion`  → low
  *  - hardware concurrency ≤ 2  → low
  *  - device pixel ratio ≥ 3
  *    + small viewport (< 820px) → medium  (mobile, but possibly powerful)
- *  - WebGL2 unavailable       → low (no real 3D)
+ *  - WebGL / WebGL2 unavailable → low (no real 3D)
  *  - otherwise                → high
  */
-export function useDeviceTier(): DeviceTier {
-  const [tier, setTier] = useState<DeviceTier>("high");
+function detectDeviceTier(): DeviceTier {
+  if (typeof window === "undefined") return "high";
 
-  useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setTier("low");
-      return;
-    }
-
-    const cores = navigator.hardwareConcurrency ?? 4;
-    const dpr = window.devicePixelRatio || 1;
-    const isMobile = window.innerWidth < 820;
+  try {
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (reduce) return "low";
 
     const canvas = document.createElement("canvas");
     const gl =
@@ -33,22 +26,26 @@ export function useDeviceTier(): DeviceTier {
       canvas.getContext("webgl") ||
       null;
 
-    if (!gl) {
-      setTier("low");
-      return;
-    }
+    if (!gl) return "low";
 
-    if (cores <= 2) {
-      setTier("low");
-      return;
-    }
+    const cores = navigator.hardwareConcurrency ?? 4;
+    const dpr = window.devicePixelRatio || 1;
+    const isMobile = window.innerWidth < 820;
 
-    if (isMobile || (dpr >= 3 && cores <= 4)) {
-      setTier("medium");
-      return;
-    }
+    if (cores <= 2) return "low";
+    if (isMobile || (dpr >= 3 && cores <= 4)) return "medium";
 
-    setTier("high");
+    return "high";
+  } catch {
+    return "low";
+  }
+}
+
+export function useDeviceTier(): DeviceTier {
+  const [tier, setTier] = useState<DeviceTier>(detectDeviceTier);
+
+  useEffect(() => {
+    setTier(detectDeviceTier());
   }, []);
 
   return tier;

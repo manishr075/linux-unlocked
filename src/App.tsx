@@ -4,6 +4,7 @@ import { TranslatorPopover } from "@/components/translator/TranslatorPopover";
 import { AppRouter } from "@/app/AppRouter";
 import { useEffect } from "react";
 import { useUIStore } from "@/state/useUIStore";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 function ThemeSync() {
   const theme = useUIStore((s) => s.theme);
@@ -15,12 +16,14 @@ function ThemeSync() {
 
 export default function App() {
   return (
-    <LevelProvider>
-      <TranslatorProvider>
-        <ThemeSync />
-        <AppRouter />
-        <TranslatorPopover />
-      </TranslatorProvider>
-    </LevelProvider>
+    <ErrorBoundary>
+      <LevelProvider>
+        <TranslatorProvider>
+          <ThemeSync />
+          <AppRouter />
+          <TranslatorPopover />
+        </TranslatorProvider>
+      </LevelProvider>
+    </ErrorBoundary>
   );
 }

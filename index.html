@@ -16,14 +16,18 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
   </head>
-  <body>
+  <body style="background-color: #0a0c12; color: #f1f5f9; margin: 0; min-height: 100vh;">
     <div id="root"></div>
     <script>
       (function() {
-        const redirect = sessionStorage.getItem("redirectPath");
-        if (redirect && redirect !== "/" && redirect !== window.location.pathname) {
-          sessionStorage.removeItem("redirectPath");
-          window.history.replaceState(null, "", redirect);
+        try {
+          const redirect = sessionStorage.getItem("redirectPath");
+          if (redirect && redirect.startsWith("/") && redirect !== "/" && redirect !== window.location.pathname) {
+            sessionStorage.removeItem("redirectPath");
+            window.history.replaceState(null, "", redirect);
+          }
+        } catch (e) {
+          // Ignore storage restrictions in private/sandboxed modes
         }
       })();
     </script>

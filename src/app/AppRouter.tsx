@@ -51,10 +51,28 @@ function SuspendedShell({ children }: { children: ReactNode }) {
   );
 }
 
+function RouterErrorFallback() {
+  return (
+    <AppShell>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <h2 className="font-display text-2xl font-bold text-ink-primary">Something went wrong</h2>
+        <p className="mt-2 text-sm text-ink-secondary">The page could not be displayed properly.</p>
+        <a
+          href="/"
+          className="mt-4 rounded-md bg-cyan px-4 py-2 text-sm font-semibold text-ink-onAccent hover:bg-cyan/90 transition-colors"
+        >
+          Return Home
+        </a>
+      </div>
+    </AppShell>
+  );
+}
+
 const router = createBrowserRouter([
   {
     path: "/",
     element: withShell(<HomePage />),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/discover",
@@ -63,6 +81,7 @@ const router = createBrowserRouter([
         <DiscoverPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/desktop",
@@ -71,6 +90,7 @@ const router = createBrowserRouter([
         <DesktopPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/atlas",
@@ -79,6 +99,7 @@ const router = createBrowserRouter([
         <AtlasPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/terminal",
@@ -87,6 +108,7 @@ const router = createBrowserRouter([
         <TerminalPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/distros",
@@ -95,6 +117,7 @@ const router = createBrowserRouter([
         <DistrosPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/compatibility",
@@ -103,6 +126,7 @@ const router = createBrowserRouter([
         <CompatibilityPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/migrate",
@@ -111,6 +135,7 @@ const router = createBrowserRouter([
         <MigratePage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/about",
@@ -119,6 +144,7 @@ const router = createBrowserRouter([
         <AboutPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/sources",
@@ -127,6 +153,7 @@ const router = createBrowserRouter([
         <AboutPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "/contribute",
@@ -135,6 +162,7 @@ const router = createBrowserRouter([
         <AboutPage />
       </SuspendedShell>
     ),
+    errorElement: <RouterErrorFallback />,
   },
   {
     path: "*",

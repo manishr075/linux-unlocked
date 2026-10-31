@@ -90,12 +90,19 @@ export class SceneManager {
     this.canvas.style.height = "100%";
     container.appendChild(this.canvas);
 
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
+    try {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance",
+      });
+    } catch (err) {
+      if (this.canvas.parentElement === container) {
+        container.removeChild(this.canvas);
+      }
+      throw err;
+    }
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.maxDpr));
     const w = container.clientWidth || window.innerWidth;
     const h = container.clientHeight || window.innerHeight;
@@ -109,7 +116,22 @@ export class SceneManager {
     this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
     this.camera.position.set(0, 0, 8);
 
-    this.clock = new THREE.Clock();
+    const startTime = performance.now() * 0.001;
+    let prevTime = startTime;
+    this.clock = {
+      getDelta: () => {
+        const now = performance.now() * 0.001;
+        const diff = now - prevTime;
+        prevTime = now;
+        return diff;
+      },
+      get elapsedTime() {
+        return performance.now() * 0.001 - startTime;
+      },
+      start: () => {},
+      stop: () => {},
+    } as unknown as THREE.Clock;
+
     this.ctx = {
       renderer: this.renderer,
       scene: this.scene,

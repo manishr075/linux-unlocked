@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SceneManager } from "@/three/core/SceneManager";
 import type { SceneModule } from "@/three/core/SceneManager";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -20,6 +20,7 @@ interface ThreeCanvasHostProps {
  *
  * Responsibilities:
  *  - Create the SceneManager on mount, dispose on unmount.
+ *  - Catch any WebGL initialization errors and degrade to fallback.
  *  - Skip 3D entirely (render fallback) when WebGL is unavailable or the
  *    user prefers reduced motion.
  *  - Pass an appropriate DPR cap based on the device tier.
@@ -34,6 +35,7 @@ export function ThreeCanvasHost({
   maxDpr,
 }: ThreeCanvasHostProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [initError, setInitError] = useState(false);
   const reduced = useReducedMotion();
   const tier = useDeviceTier();
 
@@ -43,13 +45,18 @@ export function ThreeCanvasHost({
   useEffect(() => {
     if (skip3D || !containerRef.current) return;
 
-    const manager = new SceneManager(containerRef.current, createScene(), {
-      maxDpr: dprCap,
-    });
-    return () => manager.dispose();
+    try {
+      const manager = new SceneManager(containerRef.current, createScene(), {
+        maxDpr: dprCap,
+      });
+      return () => manager.dispose();
+    } catch (err) {
+      console.warn("Three.js WebGL initialization failed; degrading gracefully to 2D fallback:", err);
+      setInitError(true);
+    }
   }, [createScene, dprCap, skip3D]);
 
-  if (skip3D) {
+  if (skip3D || initError) {
     return (
       <div className={className} aria-hidden={false}>
         {fallback}
