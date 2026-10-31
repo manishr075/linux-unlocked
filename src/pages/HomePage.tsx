@@ -25,7 +25,6 @@ import {
   Wrench,
   Sparkles,
   Layers,
-  ChevronDown,
   Info,
   CheckCircle2,
   AlertTriangle,
@@ -82,7 +81,7 @@ const ARCHITECTURE_LAYERS = [
     privilege: "Ring 3 (User Session)",
     telemetry: "Tear-Free Wayland RFC • PipeWire Pro Audio Graph • DRM / KMS",
     description:
-      "Modern Linux has replaced legacy 1980s X11 protocols with Wayland: a secure, tear-free display compositor protocol. Alongside it, PipeWire handles pro-audio and video streaming with ultra-low latency.",
+      "Modern Linux desktop environments increasingly default to Wayland for secure, tear-free display compositing and per-window isolation, while X11 and XWayland remain actively supported for legacy applications and specialized GPU workflows. Alongside it, PipeWire coordinates audio and video streaming with low latency.",
     keyComponents: ["Wayland Compositor", "PipeWire Pro Audio", "Mesa 3D Graphics", "Vulkan & DRM/KMS"],
     accent: "electric",
   },
@@ -123,10 +122,13 @@ export function HomePage() {
 
   // Ref for the pinned exploded architecture section
   const explodedSectionRef = useRef<HTMLDivElement>(null);
-  const { progress: archProgress, activeLayer, scrollToLayer } = useExplodedScroll(
+  const { progressRef, activeLayer, scrollToLayer, setActiveLayer } = useExplodedScroll(
     explodedSectionRef,
     ARCHITECTURE_LAYERS.length
   );
+
+  // Selected subsystem from 3D raycasting
+  const [selectedSubsystem, setSelectedSubsystem] = useState<string | null>(null);
 
   // Perspective filter state for trade-offs
   const [selectedPerspective, setSelectedPerspective] = useState<Perspective>("all");
@@ -137,81 +139,98 @@ export function HomePage() {
   }, []);
 
   // Exploded architecture 3D scene factory
-  const progressRef = useRef(0);
-  progressRef.current = archProgress;
-
   const createArchScene = useCallback(() => {
     return createExplodedArchScene({
       getProgress: () => progressRef.current,
+      onActiveLayerChange: (idx) => setActiveLayer(idx),
+      onSelectSubsystem: (info) => setSelectedSubsystem(info.name),
     });
-  }, []);
+  }, [progressRef, setActiveLayer]);
 
   return (
     <div className="relative">
       {/* ============================================================
-          SECTION 1: HERO WITH NATIVE THREE.JS 3D SCENE & AMBIENT DEPTH
+          SECTION 1: HERO (SPLIT LAYOUT: EDITORIAL LEFT, 3D RIGHT)
           ============================================================ */}
-      <section className="relative flex min-h-[90vh] flex-col justify-center overflow-hidden border-b border-white/[0.08] px-4 pt-12 pb-16">
+      <section className="relative min-h-[92vh] border-b border-white/[0.08] px-4 pt-8 pb-12 flex flex-col justify-between overflow-hidden">
         {/* Subtle Ambient Radial Lighting */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(34,211,238,0.12),transparent_70%)]" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_70%_35%,rgba(34,211,238,0.14),transparent_65%)]" />
 
-        {/* 3D Canvas Background */}
-        <div className="pointer-events-none absolute inset-0 z-0 opacity-80">
-          <ThreeCanvasHost
-            createScene={createHeroScene}
-            className="h-full w-full"
-            fallback={
-              <div className="flex h-full items-center justify-center bg-void">
-                <div className="h-48 w-48 rounded-full border border-cyan/30 bg-cyan/5 blur-2xl" />
+        <div className="relative z-base mx-auto max-w-7xl w-full flex-1 flex flex-col justify-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center py-6">
+            {/* Left Column: Product messaging & primary actions (7 cols) */}
+            <div className="lg:col-span-7 text-left">
+              {/* Eyebrow */}
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan/30 bg-cyan/10 px-3.5 py-1 text-xs font-semibold tracking-wider text-cyan uppercase backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" />
+                THE INTERACTIVE GATEWAY TO LINUX
               </div>
-            }
-          />
+
+              <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-[-0.035em] text-ink-primary leading-[1.08]">
+                Understand Linux.
+                <br />
+                <span className="text-gradient">Experience it.</span>
+                <br />
+                Make it yours.
+              </h1>
+
+              <p className="mt-5 text-base sm:text-lg text-ink-secondary leading-relaxed max-w-xl">
+                Explore how Linux works, experiment in a safe environment, and discover whether it belongs on your computer — without installing anything.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    explodedSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="gap-2"
+                >
+                  Explore Linux <Layers size={18} />
+                </Button>
+
+                <Link to="/terminal">
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    <Terminal size={18} className="text-cyan" /> Try the Terminal
+                  </Button>
+                </Link>
+
+                <Link to="/distros">
+                  <Button size="lg" variant="ghost" className="gap-2 text-ink-secondary hover:text-ink-primary">
+                    Find Your Distro <ArrowRight size={16} />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: Native Three.js Computing Boot Scene (5 cols) */}
+            <div className="lg:col-span-5 h-[340px] sm:h-[420px] lg:h-[480px] w-full relative rounded-2xl border border-white/[0.08] bg-[#070a12]/80 overflow-hidden shadow-2xl backdrop-blur-xl group">
+              <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-cyan animate-ping" />
+                <span className="font-mono text-[11px] uppercase tracking-wider text-cyan">
+                  CPU Boot Core • Ring 0
+                </span>
+              </div>
+
+              <ThreeCanvasHost
+                createScene={createHeroScene}
+                className="h-full w-full"
+                fallback={
+                  <div className="flex h-full items-center justify-center bg-void p-6 text-center">
+                    <div>
+                      <Terminal className="mx-auto mb-2 text-cyan" size={36} />
+                      <p className="text-xs text-ink-muted font-mono">2D Processor Visualization</p>
+                    </div>
+                  </div>
+                }
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Hero Content */}
-        <div className="relative z-base mx-auto max-w-5xl text-center">
-          {/* Status Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan/30 bg-cyan/10 px-4 py-1.5 text-xs font-semibold tracking-wider text-cyan uppercase backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-            <span className="h-2 w-2 rounded-full bg-cyan animate-pulse" />
-            v1.0 • Pure Client-Side WebGL • 0 Remote Telemetry
-          </div>
-
-          <h1 className="font-display text-5xl font-extrabold tracking-[-0.035em] sm:text-7xl lg:text-8xl">
-            Your computer.
-            <br />
-            <span className="text-gradient">Your freedom.</span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-base text-ink-secondary sm:text-xl leading-relaxed">
-            An interactive, browser-based operating system laboratory. Explore the Linux kernel from silicon to userland in real-time 3D, simulate a terminal safely in virtual memory, and discover your ideal distribution.
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3.5">
-            <Button
-              size="lg"
-              onClick={() => {
-                explodedSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="gap-2"
-            >
-              Explore 3D Architecture <Layers size={18} />
-            </Button>
-
-            <Link to="/terminal">
-              <Button size="lg" variant="secondary" className="gap-2">
-                <Terminal size={18} className="text-cyan" /> Try Terminal Sandbox
-              </Button>
-            </Link>
-
-            <Link to="/distros">
-              <Button size="lg" variant="ghost" className="gap-2">
-                Distro Finder Quiz <ArrowRight size={16} />
-              </Button>
-            </Link>
-          </div>
-
-          {/* Quick Value Metrics */}
-          <div className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* Bottom Trust Indicators & Product Pillars */}
+        <div className="relative z-base mx-auto max-w-7xl w-full pt-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="glass-card rounded-xl p-3.5 text-left">
               <p className="text-[11px] font-mono text-ink-muted uppercase">Architecture</p>
               <p className="text-sm font-semibold text-ink-primary mt-0.5">Monolithic Kernel</p>
@@ -220,10 +239,10 @@ export function HomePage() {
             <div className="glass-card rounded-xl p-3.5 text-left">
               <p className="text-[11px] font-mono text-ink-muted uppercase">3D Engine</p>
               <p className="text-sm font-semibold text-ink-primary mt-0.5">Native Three.js</p>
-              <p className="text-[11px] text-cyan mt-1">Zero React Fiber Overheads</p>
+              <p className="text-[11px] text-cyan mt-1">Direct WebGL Rendering</p>
             </div>
             <div className="glass-card rounded-xl p-3.5 text-left">
-              <p className="text-[11px] font-mono text-ink-muted uppercase">Privacy Guarantee</p>
+              <p className="text-[11px] font-mono text-ink-muted uppercase">Privacy & Sovereignty</p>
               <p className="text-sm font-semibold text-success mt-0.5">Zero Tracking</p>
               <p className="text-[11px] text-ink-muted mt-1">100% In-Memory Sandbox</p>
             </div>
@@ -233,14 +252,6 @@ export function HomePage() {
               <p className="text-[11px] text-electric mt-1">Beginner to Kernel Engineer</p>
             </div>
           </div>
-        </div>
-
-        {/* Scroll indicator prompt */}
-        <div className="relative z-base pt-12 pb-2 text-center">
-          <p className="text-xs font-mono text-ink-muted tracking-wider uppercase">
-            Scroll down to explode the operating system stack
-          </p>
-          <ChevronDown size={18} className="mx-auto mt-1 animate-bounce text-cyan" />
         </div>
       </section>
 
@@ -269,121 +280,170 @@ export function HomePage() {
       <section
         ref={explodedSectionRef}
         className="relative bg-void border-b border-white/[0.08]"
-        style={{ minHeight: "420vh" }}
+        style={{ minHeight: "440vh" }}
       >
-        {/* Sticky 3D Canvas Host Container */}
-        <div className="sticky top-0 h-screen w-full overflow-hidden">
-          {/* 3D Scene */}
-          {!skip3D ? (
-            <div className="absolute inset-0">
-              <ThreeCanvasHost
-                createScene={createArchScene}
-                className="h-full w-full"
-              />
+        {/* Sticky Desktop Split Layout Container */}
+        <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col">
+          {/* Compact Top Chapter Selector Bar */}
+          <div className="w-full border-b border-white/[0.08] bg-[#07090e]/90 backdrop-blur-md px-4 py-2.5 z-20 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-cyan">LINUX ARCHITECTURE</span>
+              <span className="text-ink-muted text-xs hidden sm:inline">•</span>
+              <span className="text-xs text-ink-secondary hidden sm:inline">6-Layer Exploded Stack</span>
             </div>
-          ) : (
-            /* Accessible 2D Fallback for Low-Tier / Reduced-Motion */
-            <div className="absolute inset-0 flex items-center justify-center p-6 bg-void">
-              <div className="max-w-xl text-center">
-                <Layers className="mx-auto mb-4 text-cyan" size={48} />
-                <h3 className="text-2xl font-bold">Linux Stack (2D Architecture Mode)</h3>
-                <p className="mt-2 text-sm text-ink-secondary">
-                  Reduced motion or performance mode active. Explore the full layer breakdown using the interactive chapter cards below.
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* Persistent Layer Scrubbing Navigation Rail */}
-          <div className="absolute top-20 left-0 right-0 z-sticky mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 pointer-events-auto">
-            {ARCHITECTURE_LAYERS.map((layer) => {
-              const isActive = activeLayer === layer.index;
-              return (
-                <button
-                  key={layer.index}
-                  onClick={() => scrollToLayer(layer.index)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all backdrop-blur-md ${
-                    isActive
-                      ? "border border-cyan/50 bg-cyan/20 text-cyan shadow-[0_0_15px_rgba(34,211,238,0.25)] font-bold"
-                      : "border border-white/[0.08] bg-surface/80 text-ink-muted hover:text-ink-primary hover:border-white/[0.2]"
-                  }`}
-                  aria-label={`Scroll to ${layer.title}`}
-                >
-                  <span className="font-mono text-cyan mr-1.5">L{layer.index}</span>
-                  <span>{layer.title.split(":")[1]?.trim() || layer.title}</span>
-                </button>
-              );
-            })}
+            {/* Chapter Selector Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {ARCHITECTURE_LAYERS.map((layer) => {
+                const isActive = activeLayer === layer.index;
+                return (
+                  <button
+                    key={layer.index}
+                    onClick={() => scrollToLayer(layer.index)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all shrink-0 ${
+                      isActive
+                        ? "border border-cyan/50 bg-cyan/20 text-cyan shadow-[0_0_12px_rgba(34,211,238,0.25)] font-bold"
+                        : "border border-white/[0.06] bg-surface/60 text-ink-muted hover:text-ink-primary hover:border-white/[0.15]"
+                    }`}
+                  >
+                    <span className="font-mono mr-1">L{layer.index}</span>
+                    <span className="hidden md:inline">{layer.title.split(":")[1]?.trim()}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Active Chapter Card HUD */}
-          <div className="pointer-events-none absolute bottom-8 left-4 right-4 z-sticky mx-auto max-w-3xl">
-            {ARCHITECTURE_LAYERS.map((layer) => {
-              const isCurrent = activeLayer === layer.index;
-              if (!isCurrent) return null;
-
-              return (
-                <div
-                  key={layer.index}
-                  className="pointer-events-auto animate-fadeIn rounded-2xl border border-cyan/40 bg-[#07090e]/95 p-6 shadow-2xl backdrop-blur-2xl"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-cyan">
-                          {layer.privilege}
-                        </span>
-                        <span className="text-ink-muted">•</span>
-                        <span className="text-xs text-ink-muted font-medium">
-                          {layer.subtitle}
-                        </span>
-                      </div>
-                      <h2 className="text-xl font-bold text-ink-primary md:text-2xl mt-0.5">
-                        {layer.title}
-                      </h2>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-cyan/10 border border-cyan/20 px-3 py-1 font-mono text-xs font-semibold text-cyan">
-                        Scroll: {Math.round(archProgress * 100)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="mt-3.5 text-sm text-ink-secondary leading-relaxed">
-                    {layer.description}
-                  </p>
-
-                  {/* Telemetry pill */}
-                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] p-2.5 text-xs text-ink-secondary">
-                    <Activity size={15} className="text-cyan shrink-0" />
-                    <span>
-                      <strong className="text-ink-primary font-mono">Telemetry:</strong> {layer.telemetry}
-                    </span>
-                  </div>
-
-                  {/* Everyday Analogy */}
-                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-base/60 p-2.5 text-xs text-ink-secondary">
-                    <Info size={15} className="text-electric shrink-0" />
-                    <span>
-                      <strong className="text-ink-primary">Everyday Analogy:</strong> {layer.analogy}
-                    </span>
-                  </div>
-
-                  {/* Components */}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {layer.keyComponents.map((comp) => (
-                      <span
-                        key={comp}
-                        className="rounded-md border border-white/[0.08] bg-elevated/80 px-2.5 py-1 font-mono text-xs text-ink-primary"
-                      >
-                        {comp}
-                      </span>
-                    ))}
+          {/* Main Stage: 68% 3D Viewport on Left, 32% Contextual Inspector Panel on Right */}
+          <div className="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+            {/* 3D Scene Viewport (68% width on desktop) */}
+            <div className="relative w-full lg:w-[68%] h-[50vh] lg:h-full overflow-hidden">
+              {!skip3D ? (
+                <ThreeCanvasHost
+                  createScene={createArchScene}
+                  className="h-full w-full"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center p-6 bg-void text-center">
+                  <div className="max-w-md">
+                    <Layers className="mx-auto mb-3 text-cyan" size={40} />
+                    <h3 className="text-lg font-bold">2D Architecture Mode</h3>
+                    <p className="mt-1 text-xs text-ink-secondary">
+                      Use the contextual inspector to explore kernel subsystems and hardware layers.
+                    </p>
                   </div>
                 </div>
-              );
-            })}
+              )}
+
+              {/* 3D Picking Hint overlay */}
+              <div className="pointer-events-none absolute bottom-4 left-4 z-10 hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-[#07090e]/80 px-3 py-1 text-[11px] text-ink-muted backdrop-blur-md">
+                <Sparkles size={12} className="text-cyan" />
+                <span>Click any 3D subsystem to inspect internals</span>
+              </div>
+            </div>
+
+            {/* Contextual Inspector Panel (32% width on desktop) */}
+            <div className="w-full lg:w-[32%] lg:border-l border-white/[0.08] bg-[#070a12]/95 backdrop-blur-2xl p-4 lg:p-6 flex flex-col justify-between overflow-y-auto z-10">
+              {(() => {
+                const currentLayer = ARCHITECTURE_LAYERS[activeLayer] || ARCHITECTURE_LAYERS[0];
+                return (
+                  <div className="space-y-4">
+                    {/* Header info */}
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold text-cyan">
+                          {currentLayer.privilege}
+                        </span>
+                        <span className="text-[11px] font-mono text-ink-muted">
+                          Layer {currentLayer.index + 1} of 6
+                        </span>
+                      </div>
+                      <h2 className="text-xl lg:text-2xl font-bold text-ink-primary mt-1">
+                        {currentLayer.title}
+                      </h2>
+                      <p className="text-xs text-cyan font-medium mt-0.5">
+                        {currentLayer.tagline}
+                      </p>
+                    </div>
+
+                    {/* Selected Subsystem Callout */}
+                    {selectedSubsystem && (
+                      <div className="rounded-lg border border-cyan/30 bg-cyan/10 p-2.5 text-xs text-cyan flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" />
+                        <span><strong>Selected Component:</strong> {selectedSubsystem}</span>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
+                      {currentLayer.description}
+                    </p>
+
+                    {/* Telemetry pill */}
+                    <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 text-xs text-ink-secondary">
+                      <div className="flex items-center gap-2 text-ink-primary font-mono font-semibold mb-1">
+                        <Activity size={14} className="text-cyan" /> Telemetry & Protocols
+                      </div>
+                      <p className="font-mono text-[11px] text-ink-muted leading-normal">
+                        {currentLayer.telemetry}
+                      </p>
+                    </div>
+
+                    {/* Everyday Analogy */}
+                    <div className="rounded-lg bg-surface/60 border border-white/[0.05] p-3 text-xs text-ink-secondary">
+                      <div className="flex items-center gap-2 text-ink-primary font-semibold mb-1">
+                        <Info size={14} className="text-electric" /> Everyday Analogy
+                      </div>
+                      <p className="leading-relaxed">
+                        {currentLayer.analogy}
+                      </p>
+                    </div>
+
+                    {/* Subsystem Components */}
+                    <div>
+                      <p className="text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-2">
+                        Subsystems & Interfaces
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {currentLayer.keyComponents.map((comp) => (
+                          <span
+                            key={comp}
+                            className="rounded-md border border-white/[0.08] bg-elevated/70 px-2 py-0.5 font-mono text-[11px] text-ink-primary"
+                          >
+                            {comp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Prev / Next Layer Navigation Buttons */}
+              <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-3 mt-4">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={activeLayer === 0}
+                  onClick={() => scrollToLayer(Math.max(0, activeLayer - 1))}
+                  className="text-xs"
+                >
+                  Previous Layer
+                </Button>
+                <span className="font-mono text-xs text-ink-muted">
+                  L{activeLayer}
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={activeLayer === ARCHITECTURE_LAYERS.length - 1}
+                  onClick={() => scrollToLayer(Math.min(ARCHITECTURE_LAYERS.length - 1, activeLayer + 1))}
+                  className="text-xs"
+                >
+                  Next Layer
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

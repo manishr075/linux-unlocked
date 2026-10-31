@@ -475,23 +475,23 @@ export function DiscoverPage() {
               <div className="rounded-lg bg-cyan/10 p-2 text-cyan">
                 <EyeOff size={24} />
               </div>
-              <h2 className="text-2xl font-bold md:text-3xl">12. Privacy by Design: Zero Telemetry</h2>
+              <h2 className="text-2xl font-bold md:text-3xl">12. Privacy Architecture: Transparency & Control</h2>
             </div>
             <div className="grid gap-8 lg:grid-cols-12 text-sm text-ink-secondary leading-relaxed">
               <div className="lg:col-span-8 space-y-3">
                 <p>
-                  Modern proprietary operating systems monetize user data: advertising IDs, keystroke analytics, search telemetry, and background tracking beacons.
+                  Privacy in Linux is fundamentally architectural: because the operating system and its core utilities are open source, there are no hidden advertising identifiers, keystroke loggers, or forced cloud telemetry backdoors.
                 </p>
                 <p>
-                  In Linux, privacy is not an optional toggle buried under thirty menus — it is the default. Operating systems like Linux Mint, Debian, and Fedora transmit zero telemetry. Your files remain on your disk, and your network bandwidth belongs solely to you.
+                  Telemetry practices vary by distribution. Community distributions like Debian and Linux Mint avoid automated telemetry entirely, while distributions like Fedora and Ubuntu offer transparent, optional hardware survey prompts that users can inspect or disable. Privacy ultimately depends on your distribution choice and application suite, but Linux gives you full sovereignty to audit, monitor, and control every packet leaving your device.
                 </p>
               </div>
               <div className="lg:col-span-4 rounded-xl border border-success/30 bg-success/5 p-4 text-xs">
                 <span className="font-bold text-success flex items-center gap-2">
-                  <CheckCircle2 size={16} /> Privacy Guarantee
+                  <CheckCircle2 size={16} /> User Sovereignty
                 </span>
                 <p className="mt-2 text-ink-secondary leading-relaxed">
-                  No online account required to install or use. No artificial activation servers. Your workstation remains completely functional even if disconnected from the internet indefinitely.
+                  No online account or activation server is required to install or use Linux. System inspection utilities like <code className="font-mono text-ink-primary">ss</code>, <code className="font-mono text-ink-primary">tcpdump</code>, and <code className="font-mono text-ink-primary">nftables</code> allow you to independently verify and enforce your machine&apos;s privacy boundaries.
                 </p>
               </div>
             </div>

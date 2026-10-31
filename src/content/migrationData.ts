@@ -78,7 +78,7 @@ export const MIGRATION_STEPS: MigrationStep[] = [
       "Select your UEFI USB drive from the boot list.",
       "Choose 'Start Linux' from the boot menu. The desktop will load within 30 seconds.",
       "Test your physical hardware in the live session: Connect to Wi-Fi, open YouTube to test audio and video playback, test screen brightness and touchpad gestures.",
-      "If everything works smoothly in the live session, it is guaranteed to work when installed!",
+      "If hardware functions well in the live session, you have high confidence that the Linux kernel supports your devices. Keep in mind that final installation also depends on proper bootloader (UEFI/GRUB) configuration, disk partitioning, and power-management setup.",
     ],
     recommendedTools: ["Live USB Desktop Session", "Built-in Browser & Settings"],
   },

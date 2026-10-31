@@ -27,7 +27,7 @@ const FAMILIES: DistroFamily[] = [
     bestFor: "Rock-solid desktop computing, home servers, and mission-critical production systems.",
     children: [
       { name: "Ubuntu", role: "Desktop & Cloud Standard", highlight: "Canonical's user-friendly release with extensive hardware support." },
-      { name: "Linux Mint", role: "Beginner Gold Standard", highlight: "Familiar Windows-like Cinnamon desktop with zero telemetry." },
+      { name: "Linux Mint", role: "Beginner Gold Standard", highlight: "Familiar Windows-like Cinnamon desktop with strong privacy defaults and no account requirement." },
       { name: "Pop!_OS", role: "Creators & Gamers", highlight: "System76 distro with automatic NVIDIA GPU driver integration." },
       { name: "Zorin OS", role: "Windows Switcher Gateway", highlight: "Elegantly mimics Windows 10/11 interface and layout." },
     ],

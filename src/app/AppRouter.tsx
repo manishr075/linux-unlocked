@@ -2,7 +2,7 @@ import { type ReactNode, lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { HomePage } from "@/pages/HomePage";
-import { ComingSoon } from "@/pages/ComingSoon";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 
 const DiscoverPage = lazy(() =>
   import("@/pages/DiscoverPage").then((m) => ({ default: m.DiscoverPage })),
@@ -166,12 +166,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: withShell(
-      <ComingSoon
-        title="Page not found"
-        description="That route doesn't exist yet. Explore the modules from the navigation above."
-      />,
-    ),
+    element: withShell(<NotFoundPage />),
   },
 ]);
 

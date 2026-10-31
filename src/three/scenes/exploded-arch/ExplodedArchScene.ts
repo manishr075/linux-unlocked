@@ -1,47 +1,46 @@
 /* ============================================================
-   Exploded Linux Architecture Scene (Module A — Centerpiece)
+   LINUX UNLOCKED — Exploded Architecture Scene (Centerpiece)
    ------------------------------------------------------------
    A real-time native Three.js 3D experience visualizing the 
    complete operating system stack from silicon to user space:
 
-     Layer 0: Silicon & Hardware Baseplate (CPU, RAM, PCIe bus)
-     Layer 1: Linux Monolithic Kernel (Core, Memory, Scheduler, VFS)
-     Layer 2: Init System & Daemons (systemd PID 1, udev, D-Bus)
-     Layer 3: Display Server & Audio (Wayland compositor, PipeWire)
-     Layer 4: Desktop Environment & Shell (GNOME/KDE panel, windows)
-     Layer 5: User Applications & Containers (Terminal, Browser, Pods)
+     Layer 0: Hardware Foundation (Motherboard PCB, CPU die, DDR5 RAM, PCIe, NVMe)
+     Layer 1: Linux Monolithic Kernel (Scheduler, Memory, VFS, Drivers, Net, Syscalls)
+     Layer 2: Init System & Daemons (PID 1 / systemd, udev, journald, D-Bus)
+     Layer 3: Display Server & Audio (Wayland compositor, PipeWire graph, Mesa)
+     Layer 4: Desktop Environment & Shell (Top panel, dock, window management)
+     Layer 5: Userland Applications & Containers (Terminal, Browser, Flatpaks)
 
-   GSAP ScrollTrigger drives `explode(progress: 0 -> 1)`:
-     - At progress 0: Stack is tightly nestled into a monolithic chassis.
-     - At progress > 0: Layers expand vertically along the Y-axis.
-     - Laser data conduits connect layers with flowing pulses.
-     - Camera dollies along an orbital spline to track active layers.
-     - Completely reversible when scrolling upward.
+   Features:
+     - 100% mathematically consistent View-Space GLSL Fresnel shaders
+     - Interactive 3D Raycasting: click any layer to highlight & inspect
+     - Smooth GSAP ScrollTrigger vertical expansion along Y-axis
+     - High performance with efficient geometry and disposal cleanup
    ============================================================ */
 
 import * as THREE from "three";
 import type { SceneModule, SceneContext } from "@/three/core/SceneManager";
 
-// --- Custom GLSL Shaders ---
+// --- GLSL Shaders with Consistent View-Space Transformations ---
 
 const circuitVertexShader = /* glsl */ `
   varying vec2 vUv;
-  varying vec3 vNormal;
-  varying vec3 vWorldPosition;
+  varying vec3 vViewNormal;
+  varying vec3 vViewPosition;
 
   void main() {
     vUv = uv;
-    vNormal = normalize(normalMatrix * normal);
-    vec4 worldPos = modelMatrix * vec4(position, 1.0);
-    vWorldPosition = worldPos.xyz;
-    gl_Position = projectionMatrix * viewMatrix * worldPos;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vViewPosition = -mvPosition.xyz;
+    vViewNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * mvPosition;
   }
 `;
 
 const circuitFragmentShader = /* glsl */ `
   varying vec2 vUv;
-  varying vec3 vNormal;
-  varying vec3 vWorldPosition;
+  varying vec3 vViewNormal;
+  varying vec3 vViewPosition;
 
   uniform float uTime;
   uniform float uActive;
@@ -49,24 +48,21 @@ const circuitFragmentShader = /* glsl */ `
   uniform vec3 uColorGrid;
   uniform vec3 uColorPulse;
 
-  // Cheap procedural 2D grid line
   float grid(vec2 st, float res) {
-    vec2 grid = fract(st * res);
-    return step(0.96, grid.x) + step(0.96, grid.y);
+    vec2 g = fract(st * res);
+    return step(0.96, g.x) + step(0.96, g.y);
   }
 
   void main() {
-    // Grid pattern
     float g1 = grid(vUv, 24.0);
     float g2 = grid(vUv, 6.0);
 
-    // Dynamic electrical pulses traveling across circuit traces
     float pulse = sin(vUv.x * 20.0 + uTime * 3.0) * cos(vUv.y * 20.0 + uTime * 2.5);
     pulse = smoothstep(0.7, 0.95, pulse) * (0.5 + 0.5 * uActive);
 
-    // Fresnel edge glow
-    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-    float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 3.0);
+    vec3 normal = normalize(vViewNormal);
+    vec3 viewDir = normalize(vViewPosition);
+    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
     vec3 color = uColorBase;
     color += uColorGrid * (g1 * 0.25 + g2 * 0.6);
@@ -78,12 +74,11 @@ const circuitFragmentShader = /* glsl */ `
 `;
 
 const kernelVertexShader = /* glsl */ `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
+  varying vec3 vViewNormal;
+  varying vec3 vViewPosition;
   uniform float uTime;
   uniform float uDisplacement;
 
-  // Simple procedural 3D noise
   float hash(vec3 p) {
     p = fract(p * 0.3183099 + 0.1);
     p *= 17.0;
@@ -102,28 +97,29 @@ const kernelVertexShader = /* glsl */ `
   }
 
   void main() {
-    vNormal = normalize(normalMatrix * normal);
-    vPosition = position;
     float n = noise(position * 2.0 + uTime * 0.5) * 0.08;
     vec3 newPos = position + normal * (n * uDisplacement);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
+    vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
+    vViewPosition = -mvPosition.xyz;
+    vViewNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * mvPosition;
   }
 `;
 
 const kernelFragmentShader = /* glsl */ `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
+  varying vec3 vViewNormal;
+  varying vec3 vViewPosition;
   uniform float uTime;
   uniform vec3 uColorCore;
   uniform vec3 uColorGlow;
   uniform float uBrightness;
 
   void main() {
-    vec3 viewDir = normalize(cameraPosition - vPosition);
-    float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.5);
+    vec3 normal = normalize(vViewNormal);
+    vec3 viewDir = normalize(vViewPosition);
+    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 2.5);
     
-    // Internal pulsation
-    float pulse = 0.5 + 0.5 * sin(uTime * 2.0 + vPosition.y * 3.0);
+    float pulse = 0.5 + 0.5 * sin(uTime * 2.0 + vViewPosition.y * 3.0);
     vec3 color = mix(uColorCore, uColorGlow, fresnel + pulse * 0.2);
     color *= uBrightness;
 
@@ -136,32 +132,29 @@ export interface ExplodedArchOptions {
   getProgress?: () => number;
   /** Callback when the active focused layer changes (0 to 5). */
   onActiveLayerChange?: (layerIndex: number) => void;
+  /** Callback when a 3D subsystem is clicked. */
+  onSelectSubsystem?: (info: { layerIndex: number; name: string }) => void;
 }
 
 export function createExplodedArchScene(options: ExplodedArchOptions = {}): SceneModule {
-  // Layer Groups
   let rootGroup: THREE.Group;
   let layerGroups: THREE.Group[] = [];
 
-  // Individual Layer Meshes
   let circuitUniforms: { [key: string]: THREE.IUniform };
   let kernelUniforms: { [key: string]: THREE.IUniform };
   let dataConduits: THREE.LineSegments[] = [];
   let particleField: THREE.Points;
 
-  // Tracked Disposables
   const geometriesToDispose: THREE.BufferGeometry[] = [];
   const materialsToDispose: THREE.Material[] = [];
 
-  // Layer configuration
   const LAYER_COUNT = 6;
-  // Maximum vertical separation when fully exploded
   const MAX_Y_OFFSETS = [-3.2, -1.6, 0.0, 1.6, 3.2, 4.8];
-  // Target rotations for nice exploded perspective
   const COMPACT_ROT_Y = -Math.PI / 5;
   const EXPLODED_ROT_Y = -Math.PI / 7;
 
   let currentActiveLayer = -1;
+  let clickCleanup: (() => void) | null = null;
 
   function trackGeom<T extends THREE.BufferGeometry>(geom: T): T {
     geometriesToDispose.push(geom);
@@ -180,6 +173,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
   // Layer 0: Hardware Foundation
   function buildHardwareLayer(): THREE.Group {
     const group = new THREE.Group();
+    group.userData = { layerIndex: 0, subsystemName: "Hardware Baseplate & Silicon" };
 
     // Base PCB slab
     const pcbGeom = trackGeom(new THREE.BoxGeometry(6.4, 0.2, 5.0));
@@ -199,6 +193,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
       })
     );
     const pcbMesh = new THREE.Mesh(pcbGeom, pcbMat);
+    pcbMesh.userData = { layerIndex: 0, subsystemName: "Dielectric PCB" };
     group.add(pcbMesh);
 
     // CPU Socket & Die
@@ -212,6 +207,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const cpuSocket = new THREE.Mesh(cpuSocketGeom, cpuSocketMat);
     cpuSocket.position.set(-1.0, 0.15, 0);
+    cpuSocket.userData = { layerIndex: 0, subsystemName: "LGA CPU Socket" };
     group.add(cpuSocket);
 
     // Golden CPU Heat Spreader / Core
@@ -227,9 +223,10 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const cpuDie = new THREE.Mesh(cpuDieGeom, cpuDieMat);
     cpuDie.position.set(-1.0, 0.25, 0);
+    cpuDie.userData = { layerIndex: 0, subsystemName: "CPU Die (Ring 0 Access)" };
     group.add(cpuDie);
 
-    // RAM Slots & Sticks
+    // DDR5 RAM Slots & Sticks
     for (let i = 0; i < 4; i++) {
       const ramGeom = trackGeom(new THREE.BoxGeometry(0.12, 0.35, 2.2));
       const ramMat = trackMat(
@@ -241,6 +238,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
       );
       const ram = new THREE.Mesh(ramGeom, ramMat);
       ram.position.set(0.8 + i * 0.3, 0.25, 0);
+      ram.userData = { layerIndex: 0, subsystemName: `DDR5 DIMM Slot ${i + 1}` };
       group.add(ram);
     }
 
@@ -256,6 +254,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
       );
       const pcie = new THREE.Mesh(pcieGeom, pcieMat);
       pcie.position.set(-0.6, 0.15, 1.4 + i * 0.5);
+      pcie.userData = { layerIndex: 0, subsystemName: `PCIe 5.0 x16 Slot ${i + 1}` };
       group.add(pcie);
     }
 
@@ -265,6 +264,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
   // Layer 1: Linux Kernel Monolithic Core
   function buildKernelLayer(): THREE.Group {
     const group = new THREE.Group();
+    group.userData = { layerIndex: 1, subsystemName: "Linux Monolithic Kernel Core" };
 
     // Central Volumetric Kernel Core
     const coreGeom = trackGeom(new THREE.IcosahedronGeometry(0.9, 3));
@@ -285,14 +285,16 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const core = new THREE.Mesh(coreGeom, coreMat);
     core.position.set(0, 0, 0);
+    core.userData = { layerIndex: 1, subsystemName: "Kernel Hub & Syscall Table" };
     group.add(core);
 
-    // Surrounding Subsystem Satellites (VFS, Scheduler, Drivers, Net)
+    // Surrounding Subsystem Satellites (Scheduler, VFS, Drivers, Net, Memory)
     const subsystems = [
-      { name: "Scheduler", pos: [-1.8, 0, -1.0], color: 0x38bdf8 },
-      { name: "VFS", pos: [1.8, 0, -1.0], color: 0x818cf8 },
-      { name: "Device Drivers", pos: [-1.8, 0, 1.0], color: 0x2dd4bf },
-      { name: "Network Stack", pos: [1.8, 0, 1.0], color: 0x34d399 },
+      { name: "Process Scheduler", pos: [-1.8, 0, -1.0], color: 0x38bdf8 },
+      { name: "Virtual Filesystem (VFS)", pos: [1.8, 0, -1.0], color: 0x818cf8 },
+      { name: "Device Drivers & DRM", pos: [-1.8, 0, 1.0], color: 0x2dd4bf },
+      { name: "TCP/IP & Network Stack", pos: [1.8, 0, 1.0], color: 0x34d399 },
+      { name: "Memory Manager (Slab/Buddy)", pos: [0.0, 0, -1.8], color: 0xa855f7 },
     ];
 
     subsystems.forEach((sub) => {
@@ -305,11 +307,12 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
           transparent: true,
           opacity: 0.85,
           emissive: sub.color,
-          emissiveIntensity: 0.2,
+          emissiveIntensity: 0.25,
         })
       );
       const mesh = new THREE.Mesh(subGeom, subMat);
       mesh.position.set(sub.pos[0], sub.pos[1], sub.pos[2]);
+      mesh.userData = { layerIndex: 1, subsystemName: sub.name };
       group.add(mesh);
 
       // Connecting conduit to core
@@ -322,7 +325,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
         new THREE.LineBasicMaterial({
           color: sub.color,
           transparent: true,
-          opacity: 0.4,
+          opacity: 0.45,
         })
       );
       const line = new THREE.Line(lineGeom, lineMat);
@@ -348,6 +351,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
   // Layer 2: Init System & Daemons (systemd PID 1)
   function buildDaemonsLayer(): THREE.Group {
     const group = new THREE.Group();
+    group.userData = { layerIndex: 2, subsystemName: "Init System & Service Daemons" };
 
     // Central PID 1 (systemd) Tower
     const pid1Geom = trackGeom(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 6));
@@ -361,64 +365,51 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
       })
     );
     const pid1 = new THREE.Mesh(pid1Geom, pid1Mat);
+    pid1.userData = { layerIndex: 2, subsystemName: "PID 1 Init Coordinator" };
     group.add(pid1);
 
     // Daemon Nodes (udev, journald, dbus, networkd, cron)
-    const daemonPositions = [
-      [-1.6, 0, -1.2],
-      [1.6, 0, -1.2],
-      [-2.0, 0, 0.6],
-      [2.0, 0, 0.6],
-      [0.0, 0, 1.8],
+    const daemons = [
+      { name: "systemd-udevd", pos: [-1.6, 0, -1.2] },
+      { name: "systemd-journald", pos: [1.6, 0, -1.2] },
+      { name: "D-Bus IPC Broker", pos: [-2.0, 0, 0.6] },
+      { name: "systemd-networkd", pos: [2.0, 0, 0.6] },
+      { name: "systemd-logind", pos: [0.0, 0, 1.8] },
     ];
 
-    daemonPositions.forEach((pos, idx) => {
+    daemons.forEach((d) => {
       const dGeom = trackGeom(new THREE.OctahedronGeometry(0.32));
       const dMat = trackMat(
         new THREE.MeshStandardMaterial({
           color: 0x60a5fa,
           metalness: 0.5,
           roughness: 0.3,
-          wireframe: idx % 2 === 1,
+          emissive: 0x2563eb,
+          emissiveIntensity: 0.2,
         })
       );
       const dMesh = new THREE.Mesh(dGeom, dMat);
-      dMesh.position.set(pos[0], pos[1], pos[2]);
+      dMesh.position.set(d.pos[0], d.pos[1], d.pos[2]);
+      dMesh.userData = { layerIndex: 2, subsystemName: d.name };
       group.add(dMesh);
 
       // Bus connection to PID 1
       const lineGeom = trackGeom(
         new THREE.BufferGeometry().setFromPoints([
           new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(pos[0], pos[1], pos[2]),
+          new THREE.Vector3(d.pos[0], d.pos[1], d.pos[2]),
         ])
       );
       const lineMat = trackMat(
-        new THREE.LineDashedMaterial({
+        new THREE.LineBasicMaterial({
           color: 0x38bdf8,
-          dashSize: 0.2,
-          gapSize: 0.1,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.4,
         })
       );
       const line = new THREE.Line(lineGeom, lineMat);
       group.add(line);
     });
-
-    // Hexagonal boundary web
-    const hexGeom = trackGeom(new THREE.RingGeometry(2.4, 2.45, 6));
-    const hexMat = trackMat(
-      new THREE.MeshBasicMaterial({
-        color: 0x3b82f6,
-        transparent: true,
-        opacity: 0.3,
-        side: THREE.DoubleSide,
-      })
-    );
-    const hex = new THREE.Mesh(hexGeom, hexMat);
-    hex.rotation.x = Math.PI / 2;
-    group.add(hex);
 
     return group;
   }
@@ -426,6 +417,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
   // Layer 3: Display Server & Audio (Wayland / PipeWire)
   function buildDisplayLayer(): THREE.Group {
     const group = new THREE.Group();
+    group.userData = { layerIndex: 3, subsystemName: "Wayland Compositor & Audio Pipeline" };
 
     // Translucent Wayland Compositor Glass Plane
     const planeGeom = trackGeom(new THREE.PlaneGeometry(5.2, 3.8));
@@ -444,6 +436,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const plane = new THREE.Mesh(planeGeom, planeMat);
     plane.rotation.x = -Math.PI / 2;
+    plane.userData = { layerIndex: 3, subsystemName: "Wayland Compositor Surface" };
     group.add(plane);
 
     // Frame Border
@@ -469,12 +462,13 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     const audioMat = trackMat(
       new THREE.PointsMaterial({
         color: 0x34d399,
-        size: 0.15,
+        size: 0.16,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.85,
       })
     );
     const audioMesh = new THREE.Points(audioGeom, audioMat);
+    audioMesh.userData = { layerIndex: 3, subsystemName: "PipeWire Audio Graph Nodes" };
     group.add(audioMesh);
 
     return group;
@@ -483,6 +477,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
   // Layer 4: Desktop Environment & Shell (GNOME / KDE)
   function buildDesktopLayer(): THREE.Group {
     const group = new THREE.Group();
+    group.userData = { layerIndex: 4, subsystemName: "Desktop Environment Shell & Windows" };
 
     // Base Desktop Surface Frame
     const deskGeom = trackGeom(new THREE.PlaneGeometry(5.6, 4.0));
@@ -498,6 +493,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const desk = new THREE.Mesh(deskGeom, deskMat);
     desk.rotation.x = -Math.PI / 2;
+    desk.userData = { layerIndex: 4, subsystemName: "Desktop Canvas" };
     group.add(desk);
 
     // Top Panel / Bar
@@ -511,6 +507,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const bar = new THREE.Mesh(barGeom, barMat);
     bar.position.set(0, 0.05, -1.75);
+    bar.userData = { layerIndex: 4, subsystemName: "Top Panel & System Tray" };
     group.add(bar);
 
     // Floating Window Geometries
@@ -524,6 +521,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const win1 = new THREE.Mesh(win1Geom, win1Mat);
     win1.position.set(-1.2, 0.1, 0.1);
+    win1.userData = { layerIndex: 4, subsystemName: "Primary Window Frame" };
     group.add(win1);
 
     const win2Geom = trackGeom(new THREE.BoxGeometry(2.4, 0.04, 1.6));
@@ -536,6 +534,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const win2 = new THREE.Mesh(win2Geom, win2Mat);
     win2.position.set(1.0, 0.12, -0.2);
+    win2.userData = { layerIndex: 4, subsystemName: "Secondary Window Frame" };
     group.add(win2);
 
     // Dock Capsule at Bottom
@@ -549,6 +548,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     );
     const dock = new THREE.Mesh(dockGeom, dockMat);
     dock.position.set(0, 0.06, 1.65);
+    dock.userData = { layerIndex: 4, subsystemName: "Application Dock" };
     group.add(dock);
 
     return group;
@@ -557,13 +557,13 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
   // Layer 5: User Applications & Container Ecosystem
   function buildAppsLayer(): THREE.Group {
     const group = new THREE.Group();
+    group.userData = { layerIndex: 5, subsystemName: "User Applications & Containers" };
 
-    // App Modules (Terminal, Browser, Editor, Docker Pods)
     const apps = [
-      { name: "Terminal", pos: [-1.6, 0.2, -0.8], size: [1.6, 0.1, 1.2], color: 0x10b981 },
-      { name: "Browser", pos: [1.4, 0.25, -0.6], size: [2.0, 0.1, 1.4], color: 0x38bdf8 },
-      { name: "Editor", pos: [-1.2, 0.3, 0.9], size: [1.8, 0.1, 1.3], color: 0x818cf8 },
-      { name: "Container", pos: [1.5, 0.35, 1.1], size: [1.2, 0.25, 1.0], color: 0x06b6d4 },
+      { name: "Terminal Emulator (pty)", pos: [-1.6, 0.2, -0.8], size: [1.6, 0.1, 1.2], color: 0x10b981 },
+      { name: "Web Browser (Firefox)", pos: [1.4, 0.25, -0.6], size: [2.0, 0.1, 1.4], color: 0x38bdf8 },
+      { name: "Code Editor (VS Code/Neovim)", pos: [-1.2, 0.3, 0.9], size: [1.8, 0.1, 1.3], color: 0x818cf8 },
+      { name: "Flatpak / OCI Container Pod", pos: [1.5, 0.35, 1.1], size: [1.2, 0.25, 1.0], color: 0x06b6d4 },
     ];
 
     apps.forEach((app) => {
@@ -579,6 +579,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
       );
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(app.pos[0], app.pos[1], app.pos[2]);
+      mesh.userData = { layerIndex: 5, subsystemName: app.name };
       group.add(mesh);
 
       // Glowing Accent Border
@@ -650,7 +651,7 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     id: "exploded-architecture",
 
     init(ctx: SceneContext) {
-      const { scene, camera } = ctx;
+      const { scene, camera, renderer } = ctx;
 
       rootGroup = new THREE.Group();
       scene.add(rootGroup);
@@ -689,6 +690,45 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
 
       // Start in compact state
       rootGroup.rotation.y = COMPACT_ROT_Y;
+
+      // Raycaster for interactive 3D subsystem picking
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+
+      const handleClick = (event: MouseEvent) => {
+        const dom = renderer.domElement;
+        const rect = dom.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(layerGroups, true);
+
+        if (intersects.length > 0) {
+          let target: THREE.Object3D | null = intersects[0].object;
+          while (target && target.userData?.layerIndex === undefined && target.parent) {
+            target = target.parent;
+          }
+
+          if (target && typeof target.userData?.layerIndex === "number") {
+            const idx = target.userData.layerIndex;
+            options.onActiveLayerChange?.(idx);
+            if (target.userData.subsystemName) {
+              options.onSelectSubsystem?.({
+                layerIndex: idx,
+                name: target.userData.subsystemName,
+              });
+            }
+          }
+        }
+      };
+
+      renderer.domElement.addEventListener("click", handleClick);
+      clickCleanup = () => {
+        renderer.domElement.removeEventListener("click", handleClick);
+      };
     },
 
     update(ctx: SceneContext) {
@@ -707,12 +747,9 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
 
       // Smooth layer explosion interpolation (Y-offsets)
       layerGroups.forEach((layer, idx) => {
-        // At progress 0, all layers compact toward Y = 0 with subtle layering
         const compactY = (idx - 2.5) * 0.25;
         const explodedY = MAX_Y_OFFSETS[idx];
         layer.position.y = THREE.MathUtils.lerp(compactY, explodedY, progress);
-
-        // Subtle individual breathing rotation
         layer.rotation.y = Math.sin(t * 0.5 + idx * 0.4) * 0.02 * (1 - progress);
       });
 
@@ -730,7 +767,6 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
       particleField.rotation.y = t * 0.02;
 
       // Dynamic Camera Path tracking the active layer
-      // Maps progress (0 -> 1) across layer height
       const targetCameraY = THREE.MathUtils.lerp(3.5, 2.0 + progress * 2.5, progress);
       const targetCameraZ = THREE.MathUtils.lerp(9.5, 8.0, progress);
       const targetCameraX = THREE.MathUtils.lerp(5.5, 4.5, progress);
@@ -754,11 +790,14 @@ export function createExplodedArchScene(options: ExplodedArchOptions = {}): Scen
     },
 
     dispose() {
-      // Free all tracked geometries
+      if (clickCleanup) {
+        clickCleanup();
+        clickCleanup = null;
+      }
+
       geometriesToDispose.forEach((g) => g.dispose());
       geometriesToDispose.length = 0;
 
-      // Free all tracked materials
       materialsToDispose.forEach((m) => m.dispose());
       materialsToDispose.length = 0;
 

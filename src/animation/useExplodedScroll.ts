@@ -1,9 +1,10 @@
 /* ============================================================
    GSAP ScrollTrigger Controller for Exploded 3D Architecture
    ------------------------------------------------------------
-   Manages the bidirectional scroll synchronization between the
-   React DOM scroll position, the active chapter highlights,
-   and the native Three.js 3D scene progress uniform.
+   Manages bidirectional scroll synchronization with high performance:
+   - High-frequency scroll progress is tracked in a ref (no React re-render per tick)
+   - React state only updates when active layer meaningfully changes
+   - Reversible forward & backward scrubbing
    ============================================================ */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -15,17 +16,19 @@ if (typeof window !== "undefined") {
 }
 
 export interface ExplodedScrollState {
-  progress: number;
+  progressRef: React.MutableRefObject<number>;
   activeLayer: number;
   scrollToLayer: (index: number) => void;
+  setActiveLayer: (index: number) => void;
 }
 
 export function useExplodedScroll(
   triggerRef: React.RefObject<HTMLElement | null>,
   layerCount = 6
 ): ExplodedScrollState {
-  const [progress, setProgress] = useState(0);
   const [activeLayer, setActiveLayer] = useState(0);
+  const activeLayerRef = useRef(0);
+  const progressRef = useRef(0);
   const scrollTriggerRef = useRef<ScrollTrigger | null>(null);
 
   useEffect(() => {
@@ -37,14 +40,17 @@ export function useExplodedScroll(
       trigger: triggerEl,
       start: "top top",
       end: "bottom bottom",
-      scrub: 0.6,
+      scrub: 0.5,
       onUpdate: (self) => {
         const p = self.progress;
-        setProgress(p);
+        progressRef.current = p;
 
         // Calculate active layer index (0 to layerCount - 1)
         const idx = Math.min(layerCount - 1, Math.floor(p * layerCount));
-        setActiveLayer(idx);
+        if (idx !== activeLayerRef.current) {
+          activeLayerRef.current = idx;
+          setActiveLayer(idx);
+        }
       },
     });
 
@@ -71,5 +77,5 @@ export function useExplodedScroll(
     [layerCount]
   );
 
-  return { progress, activeLayer, scrollToLayer };
+  return { progressRef, activeLayer, scrollToLayer, setActiveLayer };
 }
